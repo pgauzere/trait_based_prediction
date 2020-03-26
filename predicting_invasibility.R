@@ -1,69 +1,56 @@
 
-compute_invasibility_surface <- function(
+predict_invasibility_surface <- function(
   nsp = 10,
-  env = seq(from = 0, to = 10,  by = 0.5),  
+  env = seq(from = 0, to = 10,  by =1 ),  
   trait.distribution = "uniform",  
   mechanism = "competitive dominance" ,
   Nmin = 0.0001 ,
   initial.abundance = 0.0005 ,
   growth.rate = 0.5,
-  n.time.step = 100 ,
+  n.time.step = 250 ,
   extinction = F ,
   plot.invasion = F,
-  traits_to_test = seq(0,1,0.05)){
-  
-  # 
-  # nsp = 4
-  # env = seq(from = 0, to = 10,  by = 1)
-  # trait.distribution = "uniform"
-  # mechanism = "competitive dominance"
-  # Nmin = 0.0001
-  # initial.abundance = 0.0005
-  # growth.rate = 0.5
-  # n.time.step = 100
-  # extinction = F
-  # plot.invasion = F
-  # traits_to_test = seq(0,1,0.1)
-  # 
+  traits_to_test = seq(0,1,0.1)){
 
-  
-  ### load library
-  require(tidyverse)
-  require(deSolve)
-  require(rootSolve)
-  require(igraph)
-  require(ggraph)
-  require(NetIndices)
-  require(viridis)
 
-  source("create_empty_alpha.df.R")
-  source("predict_demographic_model_parameters.R")
-  source("predict_coexistence_outcome.R")
-  source("compute_interaction_from_competitive_dominance.R")
-  source("compute_interaction_from_niche_difference.R")
-  source("compute_interaction_from_extreme_facilitation.R")
-  
-  
-alpha.df <- predict_demographic_model_parameters(rep = 1, 
-                                  nsp = nsp, 
-                                  env = env, 
-                                  trait.distribution = trait.distribution, 
-                                  mechanism = mechanism)
 
-# build a new empty alpha.df with one more species (the invader)
-alpha.df.inv <- create_empty_alpha.df(
-                      rep = 1, 
-                      nsp = nsp+1, 
-                      env = env, 
-                      trait.distribution =trait.distribution, 
-                      mechanism = mechanism)
+nsp = 10
+env = seq(from = 0, to = 10,  by = 1)
+trait.distribution = "uniform"
+mechanism = "niche difference"
+Nmin = 0.0001
+initial.abundance = 0.0005
+growth.rate = 0.5
+n.time.step = 250
+extinction = T
+plot.invasion = T
+traits_to_test = seq(0,1, 0.1)
 
-# fill alpha.df.inv with known interaction coefficients from alpha.df. all but invader species 
-alpha.df.inv[alpha.df.inv$i != nsp+1 & alpha.df.inv$j != nsp+1, c("interaction.coef", "trait.i", "trait.j")] <- alpha.df[, c("interaction.coef", "trait.i", "trait.j")]
-alpha.df.inv[alpha.df.inv$i != nsp+1 & alpha.df.inv$j == nsp+1, "trait.i"] <- rep(unique(alpha.df$trait.i))
-alpha.df.inv[alpha.df.inv$i == nsp+1 & alpha.df.inv$j != nsp+1, "trait.j"] <- rep(unique(alpha.df$trait.j))
 
-#create empty matrix for invasibility surface
+sub_alpha <- predict_demographic_model_parameters(rep = 1, 
+                                                 nsp = nsp, 
+                                                 env = env, 
+                                                 trait.distribution = trait.distribution, 
+                                                 mechanism = mechanism)
+
+
+nsp <- length(unique(sub_alpha$i)) + 1
+env <- unique(sub_alpha$env)
+
+# create empty matrices
+alpha <- array(rep(NA, nsp^2), dim = c(nsp, nsp, length(env), length(mechanism), length(trait.distribution)),  
+               dimnames = list(1:nsp, 1:nsp, env, mechanism, trait.distribution))
+
+# reshape matrix to dataframe (for computation purpose)
+alpha.df2 <- reshape2::melt(alpha)
+colnames(alpha.df2) <- c("i", "j", "env", "mechanism", "trait.distribution", "interaction.coef")
+alpha.df2$trait.i <- NA
+alpha.df2$trait.j <- NA
+alpha.df2[alpha.df2$i !=11 & alpha.df2$j !=11, c("interaction.coef", "trait.i", "trait.j")] <- sub_alpha[, c("interaction.coef", "trait.i", "trait.j")]
+alpha.df2[alpha.df2$i !=11 & alpha.df2$j ==11, "trait.i"] <- rep(unique(sub_alpha$trait.i))
+alpha.df2[alpha.df2$i ==11 & alpha.df2$j !=11, "trait.j"] <- rep(unique(sub_alpha$trait.j))
+
+
 res_invasion <-
   matrix(
     data = NA,
@@ -73,145 +60,128 @@ res_invasion <-
                     as.character(traits_to_test))
   )
 
-#### 1 simulate the community dynamic for a given environment, without invader ####
-# the idea is to reach equilibrium under the environemtal conditions
 
 for(i in 1:length(env)){
-  
-  x <- alpha.df[alpha.df$env == env[i],]
 
-  ### define ODE equations system for multi-species dynamics
+  # alpha.stability <- plyr::ddply(alpha.df, .(mechanism, trait.distribution, replicate), function(x){
+  x <- sub_alpha[sub_alpha$env == env[i],]
+  
+  ### Fist simulation
   # initial abundance
   if (class(initial.abundance) == "numeric") {
     if (length(initial.abundance) == 1) {
-      No = rep(initial.abundance, nsp)
+      No = rep(initial.abundance, nsp-1)
     } else{
       No = initial.abundance
     }
   } else {
     if (initial.abundance == "random") {
-      No = runif(nsp)
+      No = runif(nsp-1)
     }
   }
   
   # growth rate
   if (class(growth.rate) == "numeric") {
     if (length(growth.rate) == 1) {
-      r = rep(growth.rate, nsp)
+      r = rep(growth.rate, nsp-1)
     } else{
       r = growth.rate
     }
   } else {
     if (growth.rate == "random") {
       # intrinsic growth rates sampled from normal distribution
-      r = rnorm(nsp, 1, 0.1)
+      r = rnorm(nsp-1, 1, 0.1)
     }
     if (growth.rate == "trait") {
-      r = x$trait.i[1:nsp]
+      r = x$trait.i[1:nsp-1]
     }
   }
   
-  ##define equation system
-  eqs <- function(t, n, params) {
-    n[n < Nmin] = 0
-    dn = n * (r + A %*% n) # add a constant here
-    if(extinction == T){dn[n<Nmin]=0} else{} # extinct species don't grow anymore - remove to allow for reinvasions
-    return(list(dn))
+  r_base<-r  
+  
+  #define equation system
+  eqs <- function(t,x,params){
+    x[ x < Nmin ] = 0 
+    dx = x*(r + A%*%x ) # add a constant here 
+    dx[x < Nmin] = 0 # extinct species don't grow anymore - remove to allow for reinvasions
+    return(list(dx))
   }  
   
+  ### Assess stability of A matrix  
   #convert table into matrix
   A <- xtabs(interaction.coef ~ i + j, data=x)
   
   ### Numerical simulations
-
   #run ODE dynamics
-  result = ode(y = No, times=1:n.time.step, func=eqs)
-  comm_final <- as.numeric(result[n.time.step,-1])
-  
-  ##### 2 we invade the community sequentially with each trait value #### 
+  result = ode(y = No, times=1:250, func=eqs)
+  comm_final <- result[100,-1]
   
   for(j in 1:length(traits_to_test)){
-    
-    # we compute the interaction coefficients of invders wiht resident community under environment
-    alpha.df.inv[alpha.df.inv$i == nsp+1, "trait.i"] <- traits_to_test[j]
-    alpha.df.inv[alpha.df.inv$j == nsp+1, "trait.j"] <- traits_to_test[j]
-    
-    # if(mechanism == "competitive_dominance") {
-      alpha.df.inv[alpha.df.inv$i == nsp + 1 |
-                     alpha.df.inv$j == nsp + 1, "interaction.coef"] <-
-        competitive_dominance(x = alpha.df.inv[alpha.df.inv$i == nsp + 1 |
-                                                 alpha.df.inv$j == nsp + 1, ])
-    # } else{
-    # if (mechanism == "niche difference") {
-    #   alpha.df.inv[alpha.df.inv$i == nsp + 1 |
-    #                  alpha.df.inv$j == nsp + 1, "interaction.coef"] <-
-    #     niche_difference(x = alpha.df.inv[alpha.df.inv$i == nsp + 1 |
-    #                                         alpha.df.inv$j == nsp + 1, ])
-    # } else{
-    #   alpha.df.inv[alpha.df.inv$i == nsp + 1 |
-    #                  alpha.df.inv$j == nsp + 1, "interaction.coef"] <-
-    #     extreme_facilitation(x = alpha.df.inv[alpha.df.inv$i == nsp + 1 |
-    #                                             alpha.df.inv$j == nsp + 1, ])
-    # }}
-    # 
-    x2 <- alpha.df.inv %>% filter(env == env[i])
-    
-    #adding initial abundance of invader. Invader is introduced at low density, i.e Nmin *5
-    No2 = c(comm_final, Nmin*100) # introduction at low density
 
+    alpha.df2[alpha.df2$i == nsp, "trait.i"] <- traits_to_test[j]
+    alpha.df2[alpha.df2$j == nsp, "trait.j"] <- traits_to_test[j]
+    
+    
+
+    #compute interaction coeffcients depending on mechanisms and environment value
+    alpha.df2$interaction.coef[(alpha.df2$i == nsp  |
+                                  alpha.df2$j == nsp ) &
+                                 (alpha.df2$mechanism == 'niche difference')] <-
+      niche_difference(x = alpha.df2[(alpha.df2$i == nsp  |
+                                        alpha.df2$j == nsp) &
+                                       (alpha.df2$mechanism == 'niche difference'),])
+    
+    alpha.df2$interaction.coef[(alpha.df2$i == nsp  |
+                                  alpha.df2$j == nsp) &
+                                 (alpha.df2$mechanism == 'competitive dominance')] <-
+      competitive_dominance(x = alpha.df2[(alpha.df2$i == nsp  |
+                                             alpha.df2$j == nsp) &
+                                            (alpha.df2$mechanism == 'competitive dominance'), ])
+    
+    alpha.df2$interaction.coef[(alpha.df2$i == nsp  |
+                                  alpha.df2$j == nsp) &
+                                 (alpha.df2$mechanism == 'extreme facilitation')] <-
+      extreme_facilitation(x = alpha.df2[(alpha.df2$i == nsp  |
+                                            alpha.df2$j == nsp) &
+                                           (alpha.df2$mechanism == 'extreme facilitation'), ])
+    
+    
+    
+    
+    
+    x2 <- alpha.df2[alpha.df2$env==env[i] & alpha.df2$mechanism==mechanism & alpha.df2$trait.distribution==trait.distribution, ]
+    
+    No = c(comm_final, Nmin*2) # initial conditions
     #convert table into matrix
-    A2 <- xtabs(interaction.coef ~ i + j, data=x2)
+    A <- xtabs(interaction.coef ~ i + j, data=x2)
+    # r <- c(r_base, runif(1,0,1))
+    r <- c(r_base, traits_to_test[j])
+    result = ode(y = No, times=1:n.time.step, func=eqs)
     
-       #  adding growth rate invader
-    # if (class(growth.rate) == "numeric") {
-    #   if (length(growth.rate) == 1) {
-    #     r2 = c(r[1:nsp], growth.rate)
-    #   } else{
-    #     r2 = c(r, growth.rate)
-    #   }
-    # } else {
-    #   if (growth.rate == "random") {
-    #     # intrinsic growth rates sampled from normal distribution
-    #     r2 = c(r[1:nsp], rnorm(1, 1, 0.1))
-    #   }
-      # if (growth.rate == "trait") {
-        r2 = c(r[1:nsp], traits_to_test[j])
-    #   }
-    # }
-    
-    ##define equation system
-    eqsInv <- function(t, n, params) {
-      # n[n < Nmin] = 0
-      dn = n * (r2 + A2 %*% n) # add a constant here
-      if(extinction == T){dn[n<Nmin]=0} else{} # entinct species don't grow anymore - remove to allow for reinvasions
-      return(list(dn))
-    } 
-    
-    #run numeric simulations with resident + invader
-    result = ode(y = No2, times=1:n.time.step, func=eqsInv)
-    
-    
+    # plot community dynamic
+    comm_dynamic <- gather(as.data.frame(result), key="species_i", value="n", -time)
+
     # plot invasion dynamic
     comm_dynamic <- gather(as.data.frame(result), key="species_i", value="n", -time)
     if(plot.invasion == T){
-    print(
-      ggplot(comm_dynamic, aes(y=n, x=time, col=species_i))+
-        geom_line()+
-        geom_line(data = comm_dynamic[comm_dynamic$species_i == as.character(nsp+1),], aes(y=n, x=time), col="red")+
-        scale_color_viridis_d(guide=F)+
-        geom_hline(yintercept = 0.0001, linetype = 2)+
-        theme_classic()+
-        labs(title = paste("trait value =",traits_to_test[j]))+
-        ylim(0,1)
-    )
+      print(
+        ggplot(comm_dynamic, aes(y=n, x=time, col=species_i))+
+          geom_line()+
+          geom_line(data = comm_dynamic[comm_dynamic$species_i == as.character(nsp+1),], aes(y=n, x=time), col="red")+
+          scale_color_viridis_d(guide=F)+
+          geom_hline(yintercept = 0.0001, linetype = 2)+
+          theme_classic()+
+          labs(title = paste("trait value =",traits_to_test[j], "| env value =",env[i]))+
+          ylim(0,1)
+      )
     }
-    #store results of invasion analysis 
-    res_invasion[i,j] <- comm_dynamic[nrow(comm_dynamic), "n"]
     
-    #monitor progress
-    print(paste("invasion : ","env[", i,"]/",length(unique(alpha.df$env)), "; trait[", j, "]/", length(traits_to_test),  "-- done", sep =''))
+    res_invasion[i,j] <- comm_dynamic[nrow(comm_dynamic), "n"]
+
+  #monitor progress
+  print(paste("invasion : ","env[", i,"]/",length(unique(alpha.df$env)), "; trait[", j, "]/", length(traits_to_test),  "-- done", sep =''))
+  
   }
 }
-return(res_invasion)
+  return(res_invasion)
 }
-
