@@ -6,3 +6,5 @@ Please begin with "code_use_paper_figures.R" to reproduce the simulations presen
 All details of how to use the different functions are present in the foreword of each functions. 
 
 If you have any issues, you can contact me throuhg github or by mail [pierre.gauzere@gmail.com]
+
+Thanks
