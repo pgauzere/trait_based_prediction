@@ -13,17 +13,17 @@ predict_environmental_change_response <- function(nsp = 10,
                                                   plot.species.dynamics = T,
                                                   plot.response.diagram = T) {
   
-  nsp = 20
-  env.change = "sinusoidal"
-  trait.distribution = "uniform"
-  mechanism = "niche difference"
-  Nmin = 0.001
-  initial.abundance = 0.01
-  growth.rate = 0.2
-  n.time.step = 100
-  extinction = F
-  plot.species.dynamics = T
-  plot.response.diagram = T
+  # nsp = 20
+  # env.change = "sinusoidal"
+  # trait.distribution = "uniform"
+  # mechanism = "niche difference"
+  # Nmin = 0.001
+  # initial.abundance = 0.01
+  # growth.rate = 0.2
+  # n.time.step = 100
+  # extinction = F
+  # plot.species.dynamics = T
+  # plot.response.diagram = T
   
   time <- 1:n.time.step
   
@@ -99,7 +99,8 @@ predict_environmental_change_response <- function(nsp = 10,
   cwm_dynamic <-
     left_join(comm_dynamic, unique(alpha.df[, c("i", "trait.i")])) %>%
     group_by(time) %>%
-    summarize("cwm" = sum(n * trait.i))
+    summarize("cwm" = mean( trait.i   * (n/sum(n))),
+              "cwv" = sum ( trait.i^2 * (n/sum(n))) - mean( trait.i   * n/sum(n)))
   cwm_dynamic$env <- unique(alpha.df$env)
   
   
@@ -109,12 +110,13 @@ predict_environmental_change_response <- function(nsp = 10,
     env.plot <-  ggplot(cwm_dynamic) +
       geom_line(aes(x = time, y = env)) +
       scale_color_viridis_d() +
-      theme_modern()
+      theme_classic()
     
     comm.plot <- ggplot(comm_dynamic, aes(y = n, x = time)) +
       geom_line(aes(col = i)) +
       scale_color_viridis_d() +
-      theme_modern(legend.position = "bottom")
+      theme(legend.position = "bottom")+
+      theme_classic()
 
   print(grid.arrange(env.plot, comm.plot))
   }
@@ -125,14 +127,13 @@ predict_environmental_change_response <- function(nsp = 10,
     cwm.plot <-  ggplot(cwm_dynamic) +
       geom_line(aes(x = time, y = cwm)) +
       scale_color_viridis_d() +
-      theme_modern()
-    
-    
+      theme_classic()
     
     response.diagram <-  ggplot(cwm_dynamic) +
       geom_path(aes(x = env, y = cwm, col = time)) +
       scale_color_viridis() +
-      theme_modern(legend.position = "bottom")
+      # theme()+
+      theme_classic(legend.position = "bottom")
     
     print(grid.arrange(env.plot, cwm.plot, response.diagram))
   }

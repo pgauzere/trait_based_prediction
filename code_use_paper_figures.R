@@ -207,7 +207,7 @@ res_invasion <-
      nsp = 10,
      env = seq(from = 0, to = 10,  by = 1),
      trait.distribution = c("uniform"),
-     mechanism = c("niche difference", "competitive dominance"),
+     mechanism = "competitive dominance",
      Nmin = 0.0001 ,
      initial.abundance = 0.0005 ,
      growth.rate = 0.5,
@@ -238,4 +238,13 @@ ggplot(reshape2::melt(res_invasion)
 # please read the forewords of the function predict_coexistence_outcome() 
 
  ##### Figure  7 #####
+
+# We will use the function predict_invasibility()
+# this basically implements the idea presented in chapter "Predicting invasibility from trait×environment interactions"
+# load the function
+source("predict_environmental_change_response.R")
+# read the forewords of the function to know how to use it
+
+test <- predict_environmental_change_response()
+test
 
