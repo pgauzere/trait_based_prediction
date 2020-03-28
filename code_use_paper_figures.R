@@ -3,35 +3,19 @@
 ##### Trait-based prediction and control: a roadmap for community ecology  #####
 ########################################### Gauzere P. #########################
 
-library(viridis)
+library(viridis)#because we like nice color scales
+
 
 ############### A Predicting demographic model parameters ######################
 
 #We will use the function predict_model_parameters()
-#this basically implements the idea presented in chapter "Predicting demographic model parameters"
-# and Box 2b
+#this basically implements the idea presented in 
+#chapter "Predicting demographic model parameters" and Box 2b.
+
 #load the function
 source("predict_demographic_model_parameters.R")
 #read the forewords of the function to know how to use it
 
-## we simulate a continuous environmental gradient under the competitive dominance
-alpha.df <- predict_demographic_model_parameters(
-  rep = 10,
-  nsp = 10,
-  env = seq(from = 0, to = 10, by = 0.1),
-  trait.distribution = "uniform",
-  mechanism = "competitive dominance")
-
-##### Figure 4a #####
-### a interaction coeff distribution 
-ggplot(alpha.df%>% filter( i != j), #remove intraspecific coefficient for plot
-       aes(x=interaction.coef, fill=env, group = env))+
-  geom_histogram()+
-  theme_classic()+
-  theme(legend.position="bottom")+
-  scale_fill_viridis()+
-  scale_x_continuous(expand = c(0,0))+
-  scale_y_continuous(expand = c(0,0), trans= "sqrt")
 
 ### we can play with different mechanisms and distributions
 # predict coefficient under multiple hypotheses and trait distributions 
@@ -50,16 +34,37 @@ alpha.df %>% filter( i != j) %>% #remove intraspecific coefficient
   theme_classic()+
   theme(legend.position="bottom")+
   scale_fill_viridis()+
+  geom_vline(xintercept = 0, col = "darkgrey")+
   scale_x_continuous(expand = c(0,0))+
   scale_y_continuous(expand = c(0,0), trans= "sqrt")+
   facet_wrap(~ mechanism + trait.distribution)
 
 
+##### Figure 4a #####
+## we simulate 10replicates along a continuous environmental gradient under the competitive dominance hypothesis
+alpha.df <- predict_demographic_model_parameters(
+  rep = 10,
+  nsp = 10,
+  env = seq(from = 0, to = 10, by = 0.1),
+  trait.distribution = "uniform",
+  mechanism = "competitive dominance")
+
+ggplot(alpha.df%>% filter( i != j), #remove intraspecific coefficient for plot
+       aes(x=interaction.coef, fill=env, group = env))+
+  geom_histogram()+
+  theme_classic()+
+  theme(legend.position="bottom")+
+  scale_fill_viridis()+
+  scale_x_continuous(expand = c(0,0))+
+  scale_y_continuous(expand = c(0,0), trans= "sqrt")
+
+
 ############### B Scaling up to coexistence outcomes ######################
 
 # We will use the function predict_coexistence_outcome()
-# this basically implements the idea presented in chapter "Scaling up to coexistence outcomes"
-# and Box 2c
+# this basically implements the idea presented in 
+# chapter "Scaling up to coexistence outcomes" and Box 2c
+
 # load the function
 source("predict_coexistence_outcome.R")
 # read the forewords of the function to know how to use it
@@ -81,6 +86,7 @@ alpha.df <- predict_demographic_model_parameters(
 alpha.df %>% 
   filter(env == 0) %>%
   predict_coexistence_outcome(plot.network = T)
+
 
 alpha.df %>% 
   filter(env == 10) %>%
@@ -141,7 +147,7 @@ ggplot(alpha.properties, aes(x = env, y = mean_trait))+
   geom_point(aes(col = cwm - mean_trait))+
   scale_color_viridis()
 
-##### Figure 5 #####
+##### Figure 5 coexistence outcome surface  #####
 # first , we need a lot of replicates to sample a variation in trait mean due to randomness
 alpha.df <- predict_demographic_model_parameters(
   rep = 100,
@@ -152,11 +158,10 @@ alpha.df <- predict_demographic_model_parameters(
 # to avoid that, you can load the output directly :
 load("alpha.properties_10sp_100_replicates_100env.Rdata")
 
-# alpha.properties <-
-#   alpha.df %>%
-#   group_by(env, replicat) %>%
-#   group_modify( ~ predict_coexistence_outcome(.x))
-
+alpha.properties <-
+  alpha.df %>%
+  group_by(env, replicat) %>%
+  group_modify( ~ predict_coexistence_outcome(.x))
 
 # To create figure 5, we interpolate the predicted over the full surface of trait - env
 
@@ -196,7 +201,7 @@ colors <- viridis(length(breaks)-1)
 with(n_interpolation, image (x,y,z, breaks=breaks, col=colors, ylim = c(0.3, 0.7)))
  contour(n_interpolation, levels=breaks, add=TRUE)
 
-############### C 
+############### C Predicting invasibility ############### 
  # We will use the function predict_invasibility()
  # this basically implements the idea presented in chapter "Predicting invasibility from trait×environment interactions"
  # load the function
@@ -214,18 +219,10 @@ res_invasion <-
      n.time.step = 250,
      extinction = T,
      plot.invasion = T,
-     traits_to_test = seq(0,1, 0.1)
+     traits_to_test = seq(0,1, 0.1), 
+     plot.surface = T
    )
 
-ggplot(reshape2::melt(res_invasion) 
-        , aes(Var1, Var2, fill = value))+
-   geom_tile()+
-   scale_fill_viridis(limits = c(0,1))+
-   theme_minimal()+
-   labs(x = "environment", y = "trait value", fill = "invasibility")+
-   scale_x_continuous(expand=c(0,0)) +
-   scale_y_continuous(expand=c(0,0))
- 
 ##### Figure  6 #####
 
  
@@ -233,11 +230,47 @@ ggplot(reshape2::melt(res_invasion)
 
 # here we are interested of the temporal dynamic of a given community
 # in this case the environmental gradient is explicitely temporal
-# we use the function predict_environmental_change_response(), which inherits from
-# predict_model_parameters() and predict_coexistence_outcome()
-# please read the forewords of the function predict_coexistence_outcome() 
+# Now, the echange in environment affect the interaction matrix via predict_demographic_model_parameter at each timesteps
+# 
 
- ##### Figure  7 #####
+##### simulate environmental change #####
+# we use the function simulate_environmental_change(), which implements 
+
+###discrete events
+simulate_environmental_change(type = "pulse")
+
+simulate_environmental_change(type = "step")
+
+simulate_environmental_change(type = "ramp")
+
+### trajectory
+#linear
+simulate_environmental_change(type = "linear", trend_value = 2)
+#linear with stochasticity
+simulate_environmental_change(type = "linear", trend_value = 2, stochasticity_value = 1)
+
+#cyclic
+simulate_environmental_change(type = "cyclic", cycle_value = 3)
+
+#cyclic with stochasticity
+simulate_environmental_change(type = "cyclic", cycle_value = 3, stochasticity_value = 1)
+
+#non-stationary (random walk)
+simulate_environmental_change(type = "non-stationary", dispersion_value = 0.10)
+env.change <- simulate_environmental_change(type = "non-stationary", dispersion_value = 0.10, stochasticity_value = 0.2)
+
+
+
+##### predict community response to environmental change #####
+# after using simulate_environmental_change()
+# We will use the function predict_environmental_change_response()
+# once more, 
+
+source("predict_environmental_change_response.R")
+predict_environmental_change_response(env.change = env.change) 
+
+
+##### Figure  7 #####
 
 # We will use the function predict_invasibility()
 # this basically implements the idea presented in chapter "Predicting invasibility from trait×environment interactions"
@@ -245,6 +278,27 @@ ggplot(reshape2::melt(res_invasion)
 source("predict_environmental_change_response.R")
 # read the forewords of the function to know how to use it
 
-test <- predict_environmental_change_response()
-test
+linear.change <- simulate_environmental_change(type = "linear", trend_value = 2)
+linear_change_response <- predict_environmental_change_response(nsp = 10,
+                                              env.change = env.change,
+                                              trait.distribution = "uniform",
+                                              mechanism = "niche difference",
+                                              Nmin = 0.001,
+                                              initial.abundance = 0.01,
+                                              growth.rate ="trait",
+                                              extinction = F,
+                                              plot.species.dynamics = T,
+                                              plot.response.diagram = T)
+
+cyclic.change <- simulate_environmental_change(type = "cyclic", cycle_value = 10, cycle_period = 0.5)
+cyclic_change_response <- predict_environmental_change_response(nsp = 10,
+                                                          env.change = cyclic.change,
+                                                          trait.distribution = "uniform",
+                                                          mechanism = "niche difference",
+                                                          Nmin = 0.001,
+                                                          initial.abundance = 0.01,
+                                                          growth.rate ="trait",
+                                                          extinction = F,
+                                                          plot.species.dynamics = T,
+                                                          plot.response.diagram = T)
 

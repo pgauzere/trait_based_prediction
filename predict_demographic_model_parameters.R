@@ -11,19 +11,23 @@
 
 # function argument are : 
   # rep : number of replicats [numeric] 
-  # nsp : number of species in the community [numeric]
-  # env : environmental/stress gradient [numeric]
-  # trait.distribution : distribution of functional traits [character string] (see section 1 for more details)
-  # mechanism : assembly mechanism hypothesis [character string] (see section 1 for more details)
-
+  # nsp : number of species in the community before assembly [numeric]
+  # env : environmental/stress gradient. Only positive values [0, +Inf] [numeric]
+  # trait.distribution : distribution of functional traits [character string]
+                  #choices are  : "gaussian", "uniform", "poisson", "bimodal"
+                  #possibility to put any combinations. e.g : c("gaussian", "uniform"), c("gaussian", "uniform", "poisson", "bimodal")
+  # mechanism : assembly mechanism hypothesis [character string]
+                  #choices are : "niche difference", "competitive dominance","extreme facilitation"
+                  # possibility to put any combinations. 
+                  
 
 # return a dataframe with columns : 
   # i : index of species i                 
   # j : index of species j
-  # env : environmental value 
+  # env : environmental/stress value/gradient/forcing
   # mechanism : assembly mechanism used
   # trait.distribution : trait distribution used
-  # replicat : replicat index
+  # replicat : replicate index
   # interaction.coef : the value of interaction coefficient
   # trait.i : trait value of species i          
   # trait.j : trait value of species j
@@ -36,55 +40,12 @@ predict_demographic_model_parameters <- function(rep = 10,
                                                  trait_values = seq(0, 1, length.out = nsp)) {
   
   require(tidyverse)
+
+#### 1 load funtional form under assembly hypotheses 
+source("compute_interaction_from_niche_difference.R")
+source("compute_interaction_from_competitive_dominance.R")
+source("compute_interaction_from_extreme_facilitation.R")# this one often brings unstability when modelizing the community dynamics
   
-##### 1 define parameters ####
-
-# how much replicats ?
-# rep <- 10
-
-# how much species ? 
-# nsp <- 10
-
-# which environmental/stress gradient (forcing if considered temporally) ? 
-  #only positive values [0, +Inf].
-# env <- seq(from = 0, to = 10, by = 0.1) # increase env value means increased resource availability/productivity
-
-# which trait distributions ? 
-  #choices are  : "gaussian", "uniform", "poisson", "bimodal"
-  #possibility to put any combinations. e.g : c("gaussian", "uniform"), c("gaussian", "uniform", "poisson", "bimodal")
-# trait.distribution <- "uniform"
-
-# which assembly mechanisms ? see section "2 define funtional form under assembly hypotheses"
-  # choices are : "niche difference", "competitive dominance","extreme facilitation"
-  # possibility to put any combinations. 
-  # you can ad your own functional forms linking trait and environment in section 2 
-# mechanism <- "niche difference"
-
-
-#### 2 define funtional form under assembly hypotheses 
-niche_difference      <- function(x) {
-  ifelse(x$trait.i != x$trait.j, 
-         -1/(1 + x$env) * abs(x$trait.i - x$trait.j) / #this is the function that matters
-           abs(min(-1/(1 + x$env) * abs(x$trait.i - x$trait.j))),
-         -1)
-}
-
-competitive_dominance <- function(x) {
-  ifelse(x$trait.i > x$trait.j, 
-         (1 + x$env) * -abs(x$trait.i - x$trait.j)/ #this is the function that matters
-           max((1 + x$env) * (x$trait.i - x$trait.j)), 
-         ifelse(x$trait.i < x$trait.j, 0, -1 ))
-}
-
-
-extreme_facilitation  <- function(x) {
-  ifelse(x$trait.i != x$trait.j, 
-         1/(1 + x$env) * abs(x$trait.i - x$trait.j) / 
-           max(1/(1 + x$env) * abs(x$trait.i - x$trait.j)),#this is the function that matters
-         -1)
-}
-
-
 ##### 3 prepare empty matrices and dataframe given parameters ####
 # create empty matrices number and size will depend on parameters. 
 alpha <-
@@ -117,7 +78,6 @@ alpha.df$trait.j <- NA
 #### 4 compute interaction coefficient given parameters for each replicat####
 
 for(i in 1:rep){ #looping trhough replicats
-print(paste("computing replicat", i,"on", rep, sep = " "))  
 sub_alpha.df <- alpha.df[alpha.df$replicat == i,]  
 
 if(trait.distribution == "forced"){
@@ -164,5 +124,7 @@ sub_alpha.df$interaction.coef[sub_alpha.df$mechanism == 'extreme facilitation'] 
 
 alpha.df[alpha.df$replicat == i,] <- sub_alpha.df
 rm(sub_alpha.df)
+
+print(paste("replicat", i,"on", rep,"| env", env, sep = " "))  
 }
 return(alpha.df)}

@@ -1,3 +1,38 @@
+################################################################################
+############ Predict invasibility surface of community ###############
+########################################### Gauzere P. #########################
+
+# The function predict invasibility surface of a given community by sequentially 
+#performing invasion simulation along the environmental gradient for several trait values
+
+#first it runs a numerical simulation for the community dynamic under a given environment value during n.time.steps
+#then it introduce a new species with a given trait value and comtinue the simulation for n.time.steps
+# the abundance of invader at n.time.steps defines the invasibility of the community at a gicen environemntal value
+# for a given trait
+
+# function requires a bunch of libraries to be installed : tidyverse, deSolve, rootSolve
+
+# function arguments are : 
+##same as predict_demographic_model_parameters :
+  #  nsp
+  #  env
+  #  trait.distribution (for now only one possible)
+  #  mechanism (for now only one possible)
+
+##same as predict_demographic_model_parameters : 
+#  Nmin
+#  initial.abundance 
+#  growth.rate (note that the invader will have r = trait value)
+#  n.time.step 
+#  extinction 
+
+##new arguments 
+#  plot.invasion [logical] : if TRUE, plot the invasion dynamic
+#  traits_to_test [numeric] : a value or a vector of value of trait values to test  
+
+
+# function returns a matrix of invasibility [0,1] with row = environmental values and columns are trait values
+
 
 predict_invasibility_surface <- function(
   nsp = 10,
@@ -10,21 +45,22 @@ predict_invasibility_surface <- function(
   n.time.step = 250 ,
   extinction = F ,
   plot.invasion = F,
-  traits_to_test = seq(0,1,0.1)){
+  traits_to_test = seq(0,1,0.1), 
+  plot.surface = T){
 
-
-
-nsp = 10
-env = seq(from = 0, to = 10,  by = 1)
-trait.distribution = "uniform"
-mechanism = "niche difference"
-Nmin = 0.0001
-initial.abundance = 0.0005
-growth.rate = 0.5
-n.time.step = 250
-extinction = T
-plot.invasion = T
-traits_to_test = seq(0,1, 0.1)
+# 
+# 
+# nsp = 10
+# env = seq(from = 0, to = 10,  by = 1)
+# trait.distribution = "uniform"
+# mechanism = "niche difference"
+# Nmin = 0.0001
+# initial.abundance = 0.0005
+# growth.rate = 0.5
+# n.time.step = 250
+# extinction = T
+# plot.invasion = T
+# traits_to_test = seq(0,1, 0.1)
 
 
 sub_alpha <- predict_demographic_model_parameters(rep = 1, 
@@ -179,9 +215,23 @@ for(i in 1:length(env)){
     res_invasion[i,j] <- comm_dynamic[nrow(comm_dynamic), "n"]
 
   #monitor progress
-  print(paste("invasion : ","env[", i,"]/",length(unique(alpha.df$env)), "; trait[", j, "]/", length(traits_to_test),  "-- done", sep =''))
+  print(paste("invasion : ","env[", i,"]/",length(env), "; trait[", j, "]/", length(traits_to_test),  "-- done", sep =''))
   
   }
 }
+
+
+if(plot.surface == TRUE){
+  print(
+    ggplot(reshape2::melt(res_invasion), aes(Var1, Var2, fill = value)) +
+      geom_tile() +
+      scale_fill_viridis(limits = c(0, 1)) +
+      theme_minimal() +
+      labs(x = "environment", y = "trait value", fill = "invasibility") +
+      scale_x_continuous(expand = c(0, 0)) +
+      scale_y_continuous(expand = c(0, 0))
+  )}
+
+
   return(res_invasion)
 }

@@ -5,6 +5,6 @@ It will allow you to play with the trait x environment based predictions of mode
 Please begin with "code_use_paper_figures.R" to reproduce the simulations presented in the paper ( and more ). 
 All details of how to use the different functions are present in the foreword of each functions. 
 
-If you have any issues, you can contact me throuhg github or by mail [pierre.gauzere@gmail.com]
+If you have any issues, you can contact me via github or email [pierre.gauzere@gmail.com]
 
 Thanks

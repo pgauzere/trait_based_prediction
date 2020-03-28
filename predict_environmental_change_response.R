@@ -1,50 +1,57 @@
 
+################################################################################
+################### Predict environmental change response ######################
+########################################### Gauzere P. #########################
+
+# The function predict the temporal dynamic of a given community under temporal environmental change
+# simulated with function simulate_environmental_change()
+
+# the difference with previous functions is that the A matrix is recalculated at each time step based on the environmental value at the time t
+
+# function argument are  : 
+##same as predict_demographic_model_parameters :
+  # nsp : number of species in the community before assembly [numeric]
+  #  trait.distribution (for now only one possible)
+  #  mechanism (for now only one possible)
+
+##same as predict_demographic_model_parameters : 
+  #  Nmin
+  #  initial.abundance 
+  #  growth.rate (note that the invader will have r = trait value)
+  #  extinction 
+
+##new arguments 
+  # env.change [data.frame] : the data frame returned by simulate_environmental_change()
+  # plot.species.dynamics [logical] : if TRUE, plot the community dynamic along with environment dynamic
+  # traits_to_test [numeric] : if TRUE, plot the community weighted mean of the trait, the with environment dynamic, an the community response diagram  
 
 
 predict_environmental_change_response <- function(nsp = 10,
-                                                  env.change = "sinusoidal",
+                                                  env.change,
                                                   trait.distribution = "uniform",
                                                   mechanism = "niche difference",
                                                   Nmin = 0.001,
                                                   initial.abundance = 0.01,
                                                   growth.rate = 0.2,
-                                                  n.time.step = 100,
                                                   extinction = F,
                                                   plot.species.dynamics = T,
                                                   plot.response.diagram = T) {
   
-  # nsp = 20
-  # env.change = "sinusoidal"
-  # trait.distribution = "uniform"
-  # mechanism = "niche difference"
-  # Nmin = 0.001
-  # initial.abundance = 0.01
-  # growth.rate = 0.2
-  # n.time.step = 100
-  # extinction = F
-  # plot.species.dynamics = T
-  # plot.response.diagram = T
-  
-  time <- 1:n.time.step
+  time <- env.change$time
   
   source("predict_demographic_model_parameters.R")
   alpha.df <- predict_demographic_model_parameters(rep = 1,
                                                    nsp = nsp,
                                                    trait.distribution = trait.distribution,
                                                    mechanism = mechanism, 
-                                                   env =
-                                                     if (env.change == "sinusoidal") {
-                                                       1 + sin(time / (n.time.step / 10))
-                                                     } else{
-                                                       time / 10
-                                                     })
+                                                   env = env.change$env.dynamic
+                                                     )
   
   alpha.df$time <-
     rep(time,
         each = nsp ^ 2 * length(mechanism) * length(trait.distribution))
   
-  # plot(alpha.df$time, alpha.df$env)
-  
+
   if (class(initial.abundance) == "numeric") {
     if (length(initial.abundance) == 1) {
       No = rep(initial.abundance, nsp)
@@ -78,8 +85,6 @@ predict_environmental_change_response <- function(nsp = 10,
   eqs <- function(t, x, params) {
     A <-
       xtabs(interaction.coef ~ i + j, data = alpha.df[alpha.df$time == ceiling(t), ])
-    # A <- alpha * (unique(env)[ceiling(t)]*10)
-    # print(paste(ceiling(t), A[2,1]))
     x[x < Nmin] = 0
     dx = x * (r + A %*% x) # add a constant here
     
@@ -87,36 +92,44 @@ predict_environmental_change_response <- function(nsp = 10,
     return(list(dx))
   }
   
+  print("numerical simulation running...")
   result = ode(y = No, times = time, func = eqs)
+  print("...done")
   comm_dynamic <-
     gather(as.data.frame(result),
            key = "i",
            value = "n",
            -time)
-  comm_dynamic$i <- as.factor(comm_dynamic$i)
+  comm_dynamic$i <- as.integer(comm_dynamic$i)
+  comm_dynamic <- left_join(comm_dynamic, unique(alpha.df[, c("i", "trait.i")]))
   
-  alpha.df$i <- as.factor(alpha.df$i)
+  # alpha.df$i <- as.factor(alpha.df$i)
+  
   cwm_dynamic <-
     left_join(comm_dynamic, unique(alpha.df[, c("i", "trait.i")])) %>%
     group_by(time) %>%
-    summarize("cwm" = mean( trait.i   * (n/sum(n))),
-              "cwv" = sum ( trait.i^2 * (n/sum(n))) - mean( trait.i   * n/sum(n)))
-  cwm_dynamic$env <- unique(alpha.df$env)
+    summarize("n_tot" = sum(n),
+              "cwm" = mean( trait.i   * (n/n_tot)),
+               "cwv" = sum ( trait.i^2 * (n/n_tot)) - cwm) 
+  cwm_dynamic$env <- env.change$env.dynamic
   
   
   
   if (plot.species.dynamics == T) {
     require(gridExtra)
-    env.plot <-  ggplot(cwm_dynamic) +
+    env.plot <-  
+      ggplot(cwm_dynamic) +
       geom_line(aes(x = time, y = env)) +
-      scale_color_viridis_d() +
+      scale_color_viridis() +
       theme_classic()
     
-    comm.plot <- ggplot(comm_dynamic, aes(y = n, x = time)) +
-      geom_line(aes(col = i)) +
-      scale_color_viridis_d() +
-      theme(legend.position = "bottom")+
-      theme_classic()
+    comm.plot <- 
+      ggplot(comm_dynamic, aes(y = n, x = time)) +
+      geom_line(aes(col = trait.i, group = i)) +
+      scale_color_viridis() +
+      theme_classic()+
+      theme(legend.position = "bottom")
+    
 
   print(grid.arrange(env.plot, comm.plot))
   }
@@ -124,16 +137,18 @@ predict_environmental_change_response <- function(nsp = 10,
   
   if (plot.response.diagram == T) {
     require(gridExtra)
-    cwm.plot <-  ggplot(cwm_dynamic) +
+    cwm.plot <-  
+      ggplot(cwm_dynamic) +
       geom_line(aes(x = time, y = cwm)) +
       scale_color_viridis_d() +
       theme_classic()
     
-    response.diagram <-  ggplot(cwm_dynamic) +
+    response.diagram <-
+      ggplot(cwm_dynamic) +
       geom_path(aes(x = env, y = cwm, col = time)) +
       scale_color_viridis() +
-      # theme()+
-      theme_classic(legend.position = "bottom")
+      theme_classic()+
+      theme(legend.position = "bottom")
     
     print(grid.arrange(env.plot, cwm.plot, response.diagram))
   }

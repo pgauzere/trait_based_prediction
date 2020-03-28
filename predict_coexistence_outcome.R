@@ -1,10 +1,9 @@
 ################################################################################
-##### B. Compute  interaction matrices properties and dynamic of communities ###
+############ Predict coexistence outcomes and network properties ###############
 ########################################### Gauzere P. #########################
 
 # This is the whole enchilada. The function predict several indices of coexistence 
-# and network properties from a given matrix (in dataframe long format)
-# computed by predict_model_parameter() 
+# and network properties from a given matrix (in dataframe long format) computed by predict_model_parameter() 
 
 # alpha.df created by create_alpha_matrices.R has one community interaction matrix per replicat, env, trait distribution, mechanism
 # an efficient way to use compute_alpha_properties is tidyverse on alpha.df dataframe
@@ -36,20 +35,23 @@
 #  network.threshold [numeric] : a threshold value for interaction strenght under which the interaction is considered null and is not ploted
 
 # function returns a dataframe with columns : 
-# "env" :
-# "mechanism" : 
+# "env" : environemtal value
+# "mechanism" : assembly mechanism
 # "stability" : 
 # "feasibility" : 
-# "strength" : 
-# "E1" : 
-# "connectance" : 
-# "modularity" : 
-# "transitivity" : 
-# "n_realized"  :
+# "strength" : strengh of interaction (mean absolute value of interaction coefficient)
+# "E1" : first moment of the distribution for the off-diagonal elements of the interaction matrix (i.e approximate the mean)
+# "E2" : second distribution for the off-diagonal elements of the interaction matrix (i.e variance)
+# "Ec" : third distribution for the off-diagonal elements of the interaction matrix (i,e ??)
+          #E1, E2, Ec are supposed to predict the stability, see Grilli et al., Nature Comm 2017
+# "connectance" : connectance of the netwrok 
+# "modularity" : modularity
+# "transitivity" : transitivity
+# "n_realized"  : number of species with n > Nmin at t = n.time.steps
 # "mean_trait" : the mean value of traits sampled to create the pool  
 # "var_trait" : the variance of trait values sampled to create the pool
-# "cwm" : the community abundance weighted
-# "cwv"
+# "cwm" : the community abundance weighted mean trait value
+# "cwv": : the community abundance weighted variance of trait value
 
 
 predict_coexistence_outcome <- function(x,
@@ -282,13 +284,17 @@ predict_coexistence_outcome <- function(x,
     )
   }
   
-
+  diag(A)<-NA
+  E1         = sum(A, na.rm = T) / nsp*(nsp-1)
+  E2         = sum(A^2 - E1^2, na.rm = T) / nsp*(nsp-1)
+  Ec         = sum(A*t(A) - (E1^2/E2^2), na.rm = T) / (nsp*(nsp-1)*E2^2)
   
     return(data.frame(
     "stability" = analytic_stability, 
     "feasibility" = analytic_feasibility,
-    "strength"  =  mean(abs(x[x$i != x$j, "interaction.coef"])), 
-    "E1"         = sum(x[x$i != x$j, "interaction.coef"]) / nsp*(nsp-1),
+    "E1"         = E1[[1]],
+    "E2"         = E2[[1]],
+    "Ec"         = Ec[[1]],
     "connectance" = connectance, 
     "modularity"  = modularity, 
     "transitivity" = transitivity, 
