@@ -81,7 +81,7 @@ simulate_environmental_change <- function(type = "pulse",
       ggplot(environmental.change, aes(time, env.dynamic)) +
       geom_line() +
       theme_classic()
-      )
+      )}
   return(environmental.change)
-    }}
+    }
   

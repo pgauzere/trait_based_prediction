@@ -37,7 +37,9 @@ predict_environmental_change_response <- function(nsp = 10,
                                                   plot.species.dynamics = T,
                                                   plot.response.diagram = T) {
   
+  # we take the timeseries from env.change
   time <- env.change$time
+  
   
   source("predict_demographic_model_parameters.R")
   alpha.df <- predict_demographic_model_parameters(rep = 1,
@@ -46,12 +48,12 @@ predict_environmental_change_response <- function(nsp = 10,
                                                    mechanism = mechanism, 
                                                    env = env.change$env.dynamic
                                                      )
-  
+  # we add an epxlicit time columns to alpha.df
   alpha.df$time <-
     rep(time,
         each = nsp ^ 2 * length(mechanism) * length(trait.distribution))
   
-
+# classic now... define No...
   if (class(initial.abundance) == "numeric") {
     if (length(initial.abundance) == 1) {
       No = rep(initial.abundance, nsp)
@@ -64,6 +66,9 @@ predict_environmental_change_response <- function(nsp = 10,
     }
   }
   
+  
+  
+  # ... and r given the arguments
   # growth rate
   if (class(growth.rate) == "numeric") {
     if (length(growth.rate) == 1) {
@@ -82,6 +87,7 @@ predict_environmental_change_response <- function(nsp = 10,
   }
   
   #define equation system
+  #note that this is different than before. For each t we have a new A matrix, which depend on environment value at time t
   eqs <- function(t, x, params) {
     A <-
       xtabs(interaction.coef ~ i + j, data = alpha.df[alpha.df$time == ceiling(t), ])
@@ -92,9 +98,12 @@ predict_environmental_change_response <- function(nsp = 10,
     return(list(dx))
   }
   
+  
   print("numerical simulation running...")
   result = ode(y = No, times = time, func = eqs)
   print("...done")
+
+  #built comm_dynamic dataframe
   comm_dynamic <-
     gather(as.data.frame(result),
            key = "i",
@@ -103,8 +112,9 @@ predict_environmental_change_response <- function(nsp = 10,
   comm_dynamic$i <- as.integer(comm_dynamic$i)
   comm_dynamic <- left_join(comm_dynamic, unique(alpha.df[, c("i", "trait.i")]))
   
-  # alpha.df$i <- as.factor(alpha.df$i)
+
   
+  #compute community indices at each time
   cwm_dynamic <-
     left_join(comm_dynamic, unique(alpha.df[, c("i", "trait.i")])) %>%
     group_by(time) %>%
@@ -114,7 +124,7 @@ predict_environmental_change_response <- function(nsp = 10,
   cwm_dynamic$env <- env.change$env.dynamic
   
   
-  
+  #plot species dynamics, if needed
   if (plot.species.dynamics == T) {
     require(gridExtra)
     env.plot <-  
@@ -134,7 +144,7 @@ predict_environmental_change_response <- function(nsp = 10,
   print(grid.arrange(env.plot, comm.plot))
   }
   
-  
+  #plot community dynamics and response diagram, if needed
   if (plot.response.diagram == T) {
     require(gridExtra)
     cwm.plot <-  
@@ -152,5 +162,6 @@ predict_environmental_change_response <- function(nsp = 10,
     
     print(grid.arrange(env.plot, cwm.plot, response.diagram))
   }
+  return both dataframes
 return(left_join(comm_dynamic, cwm_dynamic))
 }

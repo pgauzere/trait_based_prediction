@@ -257,8 +257,6 @@ simulate_environmental_change(type = "cyclic", cycle_value = 3, stochasticity_va
 
 #non-stationary (random walk)
 simulate_environmental_change(type = "non-stationary", dispersion_value = 0.10)
-env.change <- simulate_environmental_change(type = "non-stationary", dispersion_value = 0.10, stochasticity_value = 0.2)
-
 
 
 ##### predict community response to environmental change #####
@@ -278,27 +276,27 @@ predict_environmental_change_response(env.change = env.change)
 source("predict_environmental_change_response.R")
 # read the forewords of the function to know how to use it
 
-linear.change <- simulate_environmental_change(type = "linear", trend_value = 2)
+linear_change <- simulate_environmental_change(type = "linear", trend_value = 0,plot.env.change = F)
 linear_change_response <- predict_environmental_change_response(nsp = 10,
-                                              env.change = env.change,
+                                              env.change = linear_change,
                                               trait.distribution = "uniform",
                                               mechanism = "niche difference",
                                               Nmin = 0.001,
                                               initial.abundance = 0.01,
-                                              growth.rate ="trait",
-                                              extinction = F,
+                                              growth.rate =0.2,
+                                              extinction = T,
                                               plot.species.dynamics = T,
                                               plot.response.diagram = T)
 
-cyclic.change <- simulate_environmental_change(type = "cyclic", cycle_value = 10, cycle_period = 0.5)
+cyclic.change <- simulate_environmental_change(type = "cyclic", cycle_value = 10, cycle_period = 0.1, plot.env.change = F)
 cyclic_change_response <- predict_environmental_change_response(nsp = 10,
                                                           env.change = cyclic.change,
                                                           trait.distribution = "uniform",
                                                           mechanism = "niche difference",
                                                           Nmin = 0.001,
                                                           initial.abundance = 0.01,
-                                                          growth.rate ="trait",
-                                                          extinction = F,
+                                                          growth.rate = "trait",
+                                                          extinction = T,
                                                           plot.species.dynamics = T,
-                                                          plot.response.diagram = T)
+                                                          plot.response.diagram = F)
 
