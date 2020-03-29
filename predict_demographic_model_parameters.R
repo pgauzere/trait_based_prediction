@@ -39,7 +39,7 @@ predict_demographic_model_parameters <- function(rep = 10,
                                                  mechanism = "competitive dominance", 
                                                  trait_values = seq(0, 1, length.out = nsp)) {
   
-  require(tidyverse)
+require(tidyverse)
 
 #### 1 load funtional form under assembly hypotheses 
 source("compute_interaction_from_niche_difference.R")

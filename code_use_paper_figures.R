@@ -14,8 +14,7 @@ library(viridis)#because we like nice color scales
 
 #load the function
 source("predict_demographic_model_parameters.R")
-#read the forewords of the function to know how to use it
-
+  #read the forewords of the function to know how to use it
 
 ### we can play with different mechanisms and distributions
 # predict coefficient under multiple hypotheses and trait distributions 
@@ -149,19 +148,40 @@ ggplot(alpha.properties, aes(x = env, y = mean_trait))+
 
 ##### Figure 5 coexistence outcome surface  #####
 # first , we need a lot of replicates to sample a variation in trait mean due to randomness
+source("predict_demographic_model_parameters.R")
+
 alpha.df <- predict_demographic_model_parameters(
-  rep = 100,
-  nsp = 10,
+  nsp = 20, 
+  mechanism ="competitive dominance", 
+  trait.distribution ="uniform",
+  rep =10,
   env = seq(from = 0, to = 10, by = 0.1))
 
 #then we can compute the coexistence outcome, but it can take a lot of time
 # to avoid that, you can load the output directly :
-load("alpha.properties_10sp_100_replicates_100env.Rdata")
+# load("alpha.properties_10sp_100_replicates_100env.Rdata")
+
+source("predict_coexistence_outcome.R")
 
 alpha.properties <-
   alpha.df %>%
   group_by(env, replicat) %>%
-  group_modify( ~ predict_coexistence_outcome(.x))
+  group_modify( ~ predict_coexistence_outcome(.x,
+                                              Nmin = 0.001,
+                                              initial.abundance = 0.001,
+                                              growth.rate = "trait",
+                                              n.time.step = 250,
+                                              extinction = T,
+                                              plot.dynamic = F,
+                                              plot.network = F, 
+                                              network.threshold = 0.05))
+unique(alpha.properties$analytic_stability)
+unique(alpha.properties$analytic_stability2)
+
+
+ggplot(alpha.properties, aes(analytic_stability))+
+  geom_jitter(aes(col = feasibility))
+
 
 # To create figure 5, we interpolate the predicted over the full surface of trait - env
 

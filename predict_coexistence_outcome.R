@@ -58,7 +58,7 @@ predict_coexistence_outcome <- function(x,
                                      Nmin = 0.001,
                                      initial.abundance = 0.01,
                                      growth.rate = 0.5,
-                                     n.time.step = 1000,
+                                     n.time.step = 250,
                                      extinction = F,
                                      plot.dynamic = F,
                                      plot.network = F, 
@@ -68,11 +68,12 @@ predict_coexistence_outcome <- function(x,
   #   rep = 1,
   #   nsp = 20,
   #   env = seq(from = 0, to = 10, by = 0.1))
+  # 
   # x <- alpha.df
   # Nmin = 0.001
   # initial.abundance = 0.01
   # growth.rate = 0.5
-  # n.time.step = 1000
+  # n.time.step = 250
   # extinction = F
   # plot.dynamic = F
   # plot.network = F
@@ -290,8 +291,11 @@ predict_coexistence_outcome <- function(x,
   Ec         = sum(A*t(A) - (E1^2/E2^2), na.rm = T) / (nsp*(nsp-1)*E2^2)
   
     return(data.frame(
-    "stability" = analytic_stability, 
+    "analytic_stability" = analytic_stability, 
+    "analytic_stability2" = analytic_stability2,
+    "numeric_stability" = numeric_stability,  
     "feasibility" = analytic_feasibility,
+    "numeric_feasibility" = numeric_feasibility,
     "E1"         = E1[[1]],
     "E2"         = E2[[1]],
     "Ec"         = Ec[[1]],

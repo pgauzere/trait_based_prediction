@@ -113,7 +113,6 @@ predict_environmental_change_response <- function(nsp = 10,
   comm_dynamic <- left_join(comm_dynamic, unique(alpha.df[, c("i", "trait.i")]))
   
 
-  
   #compute community indices at each time
   cwm_dynamic <-
     left_join(comm_dynamic, unique(alpha.df[, c("i", "trait.i")])) %>%
@@ -162,6 +161,6 @@ predict_environmental_change_response <- function(nsp = 10,
     
     print(grid.arrange(env.plot, cwm.plot, response.diagram))
   }
-  return both dataframes
+#return both dataframes
 return(left_join(comm_dynamic, cwm_dynamic))
 }

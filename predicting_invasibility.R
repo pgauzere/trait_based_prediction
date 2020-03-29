@@ -61,7 +61,7 @@ predict_invasibility_surface <- function(
 # extinction = T
 # plot.invasion = T
 # traits_to_test = seq(0,1, 0.1)
-
+  source("predict_demographic_model_parameters.R")
 
 sub_alpha <- predict_demographic_model_parameters(rep = 1, 
                                                  nsp = nsp, 
