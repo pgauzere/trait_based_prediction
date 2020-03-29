@@ -32,14 +32,16 @@
 #  n.time.step [numeric]  : the number of timse step for numeric simulations
 #  plot.dynamic [logical] : if TRUE, plot the community dynamic
 #  plot.network [logical] : if TRUE, plot the community network
-#  network.threshold [numeric] : a threshold value for interaction strenght under which the interaction is considered null and is not ploted
+#  network.threshold [numeric] : threshold value for interaction strenght under which the interaction is considered non-existent
 
 # function returns a dataframe with columns : 
 # "env" : environemtal value
 # "mechanism" : assembly mechanism
-# "stability" : 
-# "feasibility" : 
-# "strength" : strengh of interaction (mean absolute value of interaction coefficient)
+#  "analytic_stability" = analytic_stability, based on the rule of "all negative eigenvalues" 
+#  analytic_stability2" = analytic_stability2, based on the rule of "negative rightmost eigenvalue
+#  "numeric_stability" = numeric_stability, based on variation of abundance at the end of numeric simulation
+#  "analytic_feasibility" = analytic_feasibility,based on species abundances at analytic equilibrium 
+#  "numeric_feasibility" = numeric_feasibility,based on species abundances at the end of numeric simulation
 # "E1" : first moment of the distribution for the off-diagonal elements of the interaction matrix (i.e approximate the mean)
 # "E2" : second distribution for the off-diagonal elements of the interaction matrix (i.e variance)
 # "Ec" : third distribution for the off-diagonal elements of the interaction matrix (i,e ??)
@@ -56,8 +58,8 @@
 
 predict_coexistence_outcome <- function(x,
                                      Nmin = 0.001,
-                                     initial.abundance = 0.01,
-                                     growth.rate = 0.5,
+                                     initial.abundance = "random",
+                                     growth.rate = "trait",
                                      n.time.step = 250,
                                      extinction = F,
                                      plot.dynamic = F,
@@ -234,11 +236,9 @@ predict_coexistence_outcome <- function(x,
   
   ## prune network : interaction coefficient under a given value are deleted from network 
   interSpeInteractions <- edges$weight[edges$i != edges$j]
-  threshold = network.threshold
-  #   abs(mean(interSpeInteractions) + qnorm(0.5) * sd(interSpeInteractions) /
-  #         sqrt(length(interSpeInteractions)))
-  # threshold = 0.05
-  edges <- edges %>% filter(abs(weight) < threshold)
+  # threshold <- abs(mean(interSpeInteractions) + qnorm(network.threshold)*sd(interSpeInteractions)/sqrt(length(interSpeInteractions)))
+  edges <- edges %>% filter(abs(weight) < network.threshold)
+  # edges <- edges %>% filter(abs(weight) < threshold)
   
   ## assemble network
   network <- graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE) #Directed is whether the inx between two indiviuals is bidirectional or not
@@ -294,7 +294,7 @@ predict_coexistence_outcome <- function(x,
     "analytic_stability" = analytic_stability, 
     "analytic_stability2" = analytic_stability2,
     "numeric_stability" = numeric_stability,  
-    "feasibility" = analytic_feasibility,
+    "analytic_feasibility" = analytic_feasibility,
     "numeric_feasibility" = numeric_feasibility,
     "E1"         = E1[[1]],
     "E2"         = E2[[1]],

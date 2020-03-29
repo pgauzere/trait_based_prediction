@@ -16,13 +16,17 @@ library(viridis)#because we like nice color scales
 source("predict_demographic_model_parameters.R")
   #read the forewords of the function to know how to use it
 
+
+
+
+
 ### we can play with different mechanisms and distributions
 # predict coefficient under multiple hypotheses and trait distributions 
 alpha.df <- predict_demographic_model_parameters(
   rep = 10,
   nsp = 10,
   env = seq(from = 0, to = 10, by = 0.1),
-  trait.distribution = c("uniform","gaussian", "bimodal"),
+  trait.distribution = c("uniform","gaussian","poisson", "bimodal"),
   mechanism = c("niche difference", "competitive dominance", "extreme facilitation")
 )
 
@@ -69,6 +73,7 @@ source("predict_coexistence_outcome.R")
 # read the forewords of the function to know how to use it
 
 
+
 ### Figure 4b-c : plot netwrok #####
 
 # we can use predict_demographic_model_parameters() with only 2 environmental values
@@ -84,12 +89,12 @@ alpha.df <- predict_demographic_model_parameters(
 #please read the forewords of the function predict_coexistence_outcome() 
 alpha.df %>% 
   filter(env == 0) %>%
-  predict_coexistence_outcome(plot.network = T)
+  predict_coexistence_outcome(plot.network = T, network.threshold = 0.05)
 
 
 alpha.df %>% 
   filter(env == 10) %>%
-  predict_coexistence_outcome(plot.network = T)
+  predict_coexistence_outcome(plot.network = T, network.threshold = 0.05)
 
 # note that color scale in paper Figure 4 is adjusted limits[-1,0] to facilitate comparison between network 
 
@@ -101,7 +106,7 @@ alpha.df %>%
 # we need a good environmental definition and trait coverage to interpolate coexistence outcome surface
 alpha.df <- predict_demographic_model_parameters(
   rep = 20,
-  nsp = 6,
+  nsp = 20,
   env = seq(from = 0, to = 10, by = 0.2))
 
 
@@ -115,73 +120,68 @@ alpha.properties <-
                                                 Nmin = 0.0001,
                                                 initial.abundance = 0.01,
                                                 growth.rate = 0.5,
-                                                n.time.step = 500,
+                                                n.time.step = 100,
                                                 extinction = T,
                                                 plot.dynamic = T,
                                                 plot.network = T, 
                                                 network.threshold = 0.05
                                                 ))
 
+## We can play to see tlinks with community or matrix properties and coexistence outcomes
+
+#feasibility only achived at low environmental values (less stressfull conditions)
 ggplot(alpha.properties, aes(x = env, y = mean_trait))+
-  geom_point(aes(col = feasibility, size = n_realized, alpha = n_realized))+
+  geom_point(aes(col = feasibility,alpha = n_realized))+
+  scale_color_viridis_d()+
+  theme_classic()+
+  theme(legend.position = "bottom")
+
+# environemt stress is linked with reducedrichness and trait variability 
+ggplot(alpha.properties, aes(x = env, y = cwv))+
+  geom_point(aes(col = n_realized))+
+  scale_color_viridis()+
+  theme_classic()+
+  theme(legend.position = "bottom")
+
+# and the first moment of the mean interspecific interaction coeff distribution is a good predictor of the final community size 
+ggplot(alpha.properties, aes(x = E1, y = n_realized))+
+  geom_point()+
   scale_color_viridis_d()+
   theme_classic()
 
-ggplot(alpha.properties, aes(x = env, y = mean_trait))+
-  geom_point(aes(col = stability, size = n_realized, alpha = n_realized))+
-  scale_color_viridis_d()+
-  theme_classic()
-
-ggplot(alpha.properties, aes(x = env, y = var_trait))+
-  geom_point(aes(col = n_realized, size = n_realized, alpha = n_realized))+
-  scale_color_viridis()+
-  theme_classic()
-
-ggplot(alpha.properties, aes(x = env, y = var_trait))+
-  geom_point(aes(col = cwv , size = n_realized, alpha = n_realized))+
-  scale_color_viridis()+
-  theme_classic()
-
-ggplot(alpha.properties, aes(x = env, y = mean_trait))+
-  geom_point(aes(col = cwm - mean_trait))+
-  scale_color_viridis()
 
 ##### Figure 5 coexistence outcome surface  #####
 # first , we need a lot of replicates to sample a variation in trait mean due to randomness
 source("predict_demographic_model_parameters.R")
 
-alpha.df <- predict_demographic_model_parameters(
-  nsp = 20, 
+alpha.df2 <- predict_demographic_model_parameters(
+  nsp = 10, 
   mechanism ="competitive dominance", 
   trait.distribution ="uniform",
-  rep =10,
+  rep =100,
   env = seq(from = 0, to = 10, by = 0.1))
 
-#then we can compute the coexistence outcome, but it can take a lot of time
-# to avoid that, you can load the output directly :
-# load("alpha.properties_10sp_100_replicates_100env.Rdata")
-
+#then we can compute the coexistence outcome, but it can take a lot of time.
 source("predict_coexistence_outcome.R")
+
+# note that the coexistence outcomes appears very sensitive to initial conditions,
+# so to deal with that I advice keeping initial.abundance = "random" and using a lot of replicates
 
 alpha.properties <-
   alpha.df %>%
-  group_by(env, replicat) %>%
+  group_by(env, replicate, trait.distribution, mechanism) %>%
   group_modify( ~ predict_coexistence_outcome(.x,
-                                              Nmin = 0.001,
-                                              initial.abundance = 0.001,
+                                              Nmin = 0.0001,
+                                              initial.abundance = "random",  
                                               growth.rate = "trait",
-                                              n.time.step = 250,
+                                              n.time.step = 100,
                                               extinction = T,
                                               plot.dynamic = F,
                                               plot.network = F, 
-                                              network.threshold = 0.05))
-unique(alpha.properties$analytic_stability)
-unique(alpha.properties$analytic_stability2)
+                                              network.threshold = 0.1))
 
 
-ggplot(alpha.properties, aes(analytic_stability))+
-  geom_jitter(aes(col = feasibility))
-
+ggplot()
 
 # To create figure 5, we interpolate the predicted over the full surface of trait - env
 
@@ -191,7 +191,7 @@ feasibility_interpolation <-
   interp(
     alpha.properties$env,
     alpha.properties$var_trait,
-    alpha.properties$feasibility,
+    as.factor(alpha.properties$analytic_feasibility),
     nx = 100,
     ny = 100,
     duplicate = "strip"
@@ -203,7 +203,15 @@ colors <- viridis(length(breaks)-1)
 with(feasibility_interpolation, image (x,y,z, breaks=breaks, col=colors, ylim = c(0.05, 0.12)))
 
 ##stability
-stab_interpolation <- interp(alpha.properties$env, alpha.properties$mean_trait, alpha.properties$stability, nx=100, ny=100, duplicate = "strip")
+stab_interpolation <-
+  interp(
+    alpha.properties$env,
+    alpha.properties$mean_trait,
+    as.factor(alpha.properties$analytic_stability),
+    nx = 100,
+    ny = 100,
+    duplicate = "strip"
+  )
 li.zmin <- min(stab_interpolation$z,na.rm=TRUE)
 li.zmax <- max(stab_interpolation$z,na.rm=TRUE)
 breaks <- pretty(c(li.zmin,li.zmax),10)
@@ -219,7 +227,7 @@ li.zmax <- max(n_interpolation$z,na.rm=TRUE)
 breaks <- pretty(c(li.zmin,li.zmax),10)
 colors <- viridis(length(breaks)-1)
 with(n_interpolation, image (x,y,z, breaks=breaks, col=colors, ylim = c(0.3, 0.7)))
- contour(n_interpolation, levels=breaks, add=TRUE)
+ # contour(n_interpolation, levels=breaks, add=TRUE)
 
 ############### C Predicting invasibility ############### 
  # We will use the function predict_invasibility()
@@ -227,6 +235,9 @@ with(n_interpolation, image (x,y,z, breaks=breaks, col=colors, ylim = c(0.3, 0.7
  # load the function
  source("predicting_invasibility.R")
  # read the forewords of the function to know how to use it
+
+
+##### Figure  6 #####
 res_invasion <-
    predict_invasibility_surface(
      nsp = 10,
@@ -242,19 +253,22 @@ res_invasion <-
      traits_to_test = seq(0,1, 0.1), 
      plot.surface = T
    )
+# to make the exact figure 6 increase the definition of traits_to_test and env vector by 10 
 
-##### Figure  6 #####
-
- 
 ############### D Predicting environmental change response
 
 # here we are interested of the temporal dynamic of a given community
 # in this case the environmental gradient is explicitely temporal
 # Now, the echange in environment affect the interaction matrix via predict_demographic_model_parameter at each timesteps
-# 
 
 ##### simulate environmental change #####
-# we use the function simulate_environmental_change(), which implements 
+
+# we use the function simulate_environmental_change(), which implements the basic principles of temporal ecology  
+# proposed by Ryo et al., 2019 TREE
+# read the function forewords for more details
+source("simulate_environmental_change.R")
+
+#plots talk more than words to describe what kind ot environmental changes can be simulated
 
 ###discrete events
 simulate_environmental_change(type = "pulse")
@@ -278,25 +292,22 @@ simulate_environmental_change(type = "cyclic", cycle_value = 3, stochasticity_va
 #non-stationary (random walk)
 simulate_environmental_change(type = "non-stationary", dispersion_value = 0.10)
 
+#non-stationary (random walk) with stochasticity
+simulate_environmental_change(type = "non-stationary", dispersion_value = 0.10, stochasticity_value = 1)
 
 ##### predict community response to environmental change #####
 # after using simulate_environmental_change()
 # We will use the function predict_environmental_change_response()
-# once more, 
-
-source("predict_environmental_change_response.R")
-predict_environmental_change_response(env.change = env.change) 
-
-
-##### Figure  7 #####
-
-# We will use the function predict_invasibility()
-# this basically implements the idea presented in chapter "Predicting invasibility from trait×environment interactions"
 # load the function
 source("predict_environmental_change_response.R")
 # read the forewords of the function to know how to use it
 
-linear_change <- simulate_environmental_change(type = "linear", trend_value = 0,plot.env.change = F)
+##### Figure  7 #####
+
+#simulate linear temporal increase in environment 
+linear_change <- simulate_environmental_change(type = "linear", trend_value = 2,plot.env.change = F)
+
+
 linear_change_response <- predict_environmental_change_response(nsp = 10,
                                               env.change = linear_change,
                                               trait.distribution = "uniform",
@@ -308,6 +319,7 @@ linear_change_response <- predict_environmental_change_response(nsp = 10,
                                               plot.species.dynamics = T,
                                               plot.response.diagram = T)
 
+
 cyclic.change <- simulate_environmental_change(type = "cyclic", cycle_value = 10, cycle_period = 0.1, plot.env.change = F)
 cyclic_change_response <- predict_environmental_change_response(nsp = 10,
                                                           env.change = cyclic.change,
@@ -318,5 +330,5 @@ cyclic_change_response <- predict_environmental_change_response(nsp = 10,
                                                           growth.rate = "trait",
                                                           extinction = T,
                                                           plot.species.dynamics = T,
-                                                          plot.response.diagram = F)
+                                                          plot.response.diagram = T)
 
