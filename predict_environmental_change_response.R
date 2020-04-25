@@ -1,7 +1,7 @@
 
 ################################################################################
 ################### Predict environmental change response ######################
-########################################### Gauzere P. #########################
+########################################### Gauzere P. and Benjamin Blonder#####
 
 # The function predict the temporal dynamic of a given community under temporal environmental change
 # simulated with function simulate_environmental_change()
@@ -26,6 +26,39 @@
   # traits_to_test [numeric] : if TRUE, plot the community weighted mean of the trait, the with environment dynamic, an the community response diagram  
 
 
+### load library
+require(tidyverse)
+require(deSolve)
+require(rootSolve)
+require(viridis)
+require(ggpubr)
+
+calculate_jacobian_glv <- function(r_vec, A_mat, N_vec, allow_extinction=TRUE, threshold.abundance=0.005)
+{
+  #J_mat = matrix(NA,nnrow=nrow(A_mat),ncol=ncol(A_mat))
+  
+  N_mat = matrix(data=N_vec,nrow=nrow(A_mat),ncol=ncol(A_mat))
+  
+  #print(N_mat)
+  
+  r_mat = diag(r_vec)
+  
+  #print(r_mat)
+  
+  J_mat = r_mat + A_mat %*% N_mat
+  
+  if (allow_extinction==TRUE)
+  {
+    # jacobian is 0 with respect to any variable if a species is extinct
+    which_species = which(N_vec < threshold.abundance)
+    J_mat[which_species,] <- 0
+  }
+  
+  #print(J_mat)
+  
+  return(J_mat)
+}
+
 predict_environmental_change_response <- function(nsp = 10,
                                                   env.change,
                                                   trait.distribution = "uniform",
@@ -36,6 +69,8 @@ predict_environmental_change_response <- function(nsp = 10,
                                                   extinction = F,
                                                   plot.species.dynamics = T,
                                                   plot.response.diagram = T) {
+  
+  
   
   # we take the timeseries from env.change
   time <- env.change$time
@@ -98,10 +133,29 @@ predict_environmental_change_response <- function(nsp = 10,
     return(list(dx))
   }
   
-  
+
   print("numerical simulation running...")
   result = ode(y = No, times = time, func = eqs)
   print("...done")
+  
+  # calculate the jacobian matrix
+  empty_list = vector(mode="list",length=length(time))
+  r_list = empty_list
+  A_list = empty_list
+  N_list = empty_list
+  J_list = empty_list
+  
+  for (i in 1:length(time))
+  {
+    # copy all the r values (no temporal change)
+    r_list[[i]] = r
+    # update the A values
+    A_list[[i]] = xtabs(interaction.coef ~ i + j, data = alpha.df[alpha.df$time == ceiling(time[i]), ])
+    N_list[[i]] = as.numeric(result[i,2:ncol(result)]) # copy out the abundances - dropping 1st column (time)
+    J_list[[i]] = calculate_jacobian_glv(r_list[[i]], A_list[[i]], N_list[[i]])
+  }
+  
+  detJ_timeseries = data.frame(time=time,detJ=sapply(J_list,det))
 
   #built comm_dynamic dataframe
   comm_dynamic <-
@@ -162,5 +216,6 @@ predict_environmental_change_response <- function(nsp = 10,
     print(grid.arrange(env.plot, cwm.plot, response.diagram))
   }
 #return both dataframes
-return(left_join(comm_dynamic, cwm_dynamic))
+cwm = left_join(comm_dynamic, cwm_dynamic)
+return(list("comm_dynamic"=cwm, detJ=detJ_timeseries, J_list=J_list))
 }

@@ -1,5 +1,5 @@
 ################################################################################
-############ Predict coexistence outcomes and network properties ###############
+############ Predict feasfeacoexistence outcomes and network properties ###############
 ########################################### Gauzere P. #########################
 
 # This is the whole enchilada. The function predict several indices of coexistence 

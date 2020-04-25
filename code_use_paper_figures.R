@@ -3,7 +3,7 @@
 ##### Trait-based prediction and control: a roadmap for community ecology  #####
 ########################################### Gauzere P. #########################
 
-library(viridis)#because we like nice color scales
+library(viridis) #because we like nice color scales
 
 
 ############### A Predicting demographic model parameters ######################
@@ -15,10 +15,6 @@ library(viridis)#because we like nice color scales
 #load the function
 source("predict_demographic_model_parameters.R")
   #read the forewords of the function to know how to use it
-
-
-
-
 
 ### we can play with different mechanisms and distributions
 # predict coefficient under multiple hypotheses and trait distributions 
@@ -255,7 +251,7 @@ res_invasion <-
    )
 # to make the exact figure 6 increase the definition of traits_to_test and env vector by 10 
 
-############### D Predicting environmental change response
+############### D Predicting environmental change response ###############
 
 # here we are interested of the temporal dynamic of a given community
 # in this case the environmental gradient is explicitely temporal
@@ -299,7 +295,9 @@ simulate_environmental_change(type = "non-stationary", dispersion_value = 0.10, 
 # after using simulate_environmental_change()
 # We will use the function predict_environmental_change_response()
 # load the function
-source("predict_environmental_change_response.R")
+
+source("simulate_environmental_change.R")
+source("predict_environmental_change_response_Ben.R")
 # read the forewords of the function to know how to use it
 
 ##### Figure  7 #####
@@ -331,4 +329,47 @@ cyclic_change_response <- predict_environmental_change_response(nsp = 10,
                                                           extinction = T,
                                                           plot.species.dynamics = T,
                                                           plot.response.diagram = T)
+
+
+
+##### Figure  8 #####
+cyclic.change <- simulate_environmental_change(type = "cyclic", cycle_value = 10, cycle_period = 0.05, 
+                                               plot.env.change = F, 
+                                               n.time.step=350)
+
+cyclic_change_response <- predict_environmental_change_response(nsp = 10,
+                                                                env.change = cyclic.change,
+                                                                trait.distribution = "uniform",
+                                                                mechanism = "niche difference",#"competitive dominance",
+                                                                Nmin = 0.01,
+                                                                initial.abundance = 0.01,
+                                                                growth.rate = "trait",
+                                                                extinction = T,
+                                                                plot.species.dynamics = T,
+                                                                plot.response.diagram = T)
+
+
+g0 = ggplot(cyclic.change, aes(x=time,y=env.dynamic)) +
+  geom_line(color='purple') + theme_classic()
+
+g1 = ggplot(cyclic_change_response[[1]], aes(y = n, x = time)) +
+  geom_line(aes(col = trait.i, group = i)) +
+  scale_color_viridis() +
+  theme_classic()+
+  theme(legend.position = "bottom") +
+  scale_y_sqrt()
+
+g2 = ggplot(cyclic_change_response$detJ, aes(x=time,y=detJ)) +
+  geom_line(color='red') + theme_classic()
+
+ggarrange(g0,g1,g2, nrow=3)
+
+forcingdet = cyclic.change %>% left_join(cyclic_change_response$detJ) %>% 
+  left_join(cyclic_change_response$comm_dynamic %>% filter(i==3))
+
+# note that the forcing and sensitivity of response are not aligned!
+plot(detJ~n,data=forcingdet,type='l')
+
+plot(scale(detJ)~time,data=forcingdet,type='l')
+lines(scale(n)~time,data=forcingdet,type='l',col='red')
 
