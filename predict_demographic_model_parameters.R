@@ -37,7 +37,8 @@ predict_demographic_model_parameters <- function(rep = 10,
                                                  env = seq(from = 0, to = 10, by = 0.1),
                                                  trait.distribution = "uniform",
                                                  mechanism = "competitive dominance", 
-                                                 trait_values = seq(0, 1, length.out = nsp)) {
+                                                 trait_values = seq(0, 1, length.out = nsp),
+                                                 probs.niche.difference=0.1) {
   
 require(tidyverse)
 
@@ -116,8 +117,11 @@ sub_alpha.df$trait.j[sub_alpha.df$trait.distribution == "bimodal"]  <- rep(trait
 sub_alpha.df$interaction.coef[sub_alpha.df$mechanism == 'niche difference'] <- 
   niche_difference(x = sub_alpha.df[sub_alpha.df$mechanism == 'niche difference',])
 
+sub_alpha.df$interaction.coef[sub_alpha.df$mechanism == 'niche difference non normalized'] <- 
+  niche_difference_non_normalized(x = sub_alpha.df[sub_alpha.df$mechanism == 'niche difference non normalized',])
+
 sub_alpha.df$interaction.coef[sub_alpha.df$mechanism == 'competitive dominance'] <- 
-  competitive_dominance(x = sub_alpha.df[sub_alpha.df$mechanism == 'competitive dominance',] )
+  competitive_dominance(x = sub_alpha.df[sub_alpha.df$mechanism == 'competitive dominance',])
 
 sub_alpha.df$interaction.coef[sub_alpha.df$mechanism == 'extreme facilitation'] <- 
   extreme_facilitation( x= sub_alpha.df[sub_alpha.df$mechanism == 'extreme facilitation',])

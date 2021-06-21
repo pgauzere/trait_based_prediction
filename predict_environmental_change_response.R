@@ -62,13 +62,15 @@ calculate_jacobian_glv <- function(r_vec, A_mat, N_vec, allow_extinction=TRUE, t
 predict_environmental_change_response <- function(nsp = 10,
                                                   env.change,
                                                   trait.distribution = "uniform",
+                                                  trait_values = NULL,
                                                   mechanism = "niche difference",
                                                   Nmin = 0.001,
                                                   initial.abundance = 0.01,
                                                   growth.rate = 0.2,
                                                   extinction = F,
                                                   plot.species.dynamics = T,
-                                                  plot.response.diagram = T) {
+                                                  plot.response.diagram = T, 
+                                                  probs.niche.difference=0.1) {
   
   
   
@@ -80,8 +82,10 @@ predict_environmental_change_response <- function(nsp = 10,
   alpha.df <- predict_demographic_model_parameters(rep = 1,
                                                    nsp = nsp,
                                                    trait.distribution = trait.distribution,
+                                                   trait_values = trait_values,
                                                    mechanism = mechanism, 
-                                                   env = env.change$env.dynamic
+                                                   env = env.change$env.dynamic,
+                                                   probs.niche.difference = probs.niche.difference
                                                      )
   # we add an epxlicit time columns to alpha.df
   alpha.df$time <-
