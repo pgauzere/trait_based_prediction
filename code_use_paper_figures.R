@@ -40,22 +40,27 @@ alpha.df %>% filter( i != j) %>% #remove intraspecific coefficient
 
 
 ##### Figure 4a #####
-## we simulate 10replicates along a continuous environmental gradient under the competitive dominance hypothesis
+## we simulate 10replicates along a continuous environmental gradient 
+# under the competitive dominance hypothesis of the niche difference
 alpha.df <- predict_demographic_model_parameters(
   rep = 10,
   nsp = 10,
   env = seq(from = 0, to = 10, by = 0.1),
   trait.distribution = "uniform",
-  mechanism = "competitive dominance")
+  mechanism = "niche difference")
 
-ggplot(alpha.df%>% filter( i != j), #remove intraspecific coefficient for plot
-       aes(x=interaction.coef, fill=env, group = env))+
-  geom_histogram()+
-  theme_classic()+
-  theme(legend.position="bottom")+
+alpha.df %>% filter( i != j & env %in% c(0,2,4,6,8,10)) %>%
+  ggplot(aes(x=interaction.coef, group = -env))+
+  geom_density(aes(fill = env),alpha =0.5)+
+  theme_modern()+
+  theme(legend.position="bottom", axis.title.x = element_blank())+
   scale_fill_viridis()+
+  # scale_fill_gradient2(low = "red", mid="darkgrey", high = "blue")+
+  # facet_wrap(~trait.distribution + mechanism + env, nrow = length(trait.distribution), scales = "free_y") +
+  # geom_vline(xintercept = 0) +
   scale_x_continuous(expand = c(0,0))+
   scale_y_continuous(expand = c(0,0), trans= "sqrt")
+
 
 
 ############### B Scaling up to coexistence outcomes ######################
