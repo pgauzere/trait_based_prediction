@@ -297,22 +297,22 @@ simulate_environmental_change(type = "non-stationary", dispersion_value = 0.10, 
 # load the function
 
 source("simulate_environmental_change.R")
-source("predict_environmental_change_response_Ben.R")
+source("predict_environmental_change_response.R")
 # read the forewords of the function to know how to use it
 
 ##### Figure  7 #####
 
 #simulate linear temporal increase in environment 
-linear_change <- simulate_environmental_change(type = "linear", trend_value = 2,plot.env.change = F)
+linear_change <- simulate_environmental_change(type = "linear", trend_value = 3, plot.env.change = T)
 
-
+# choose mechanism = "competitive dominance" for Fig7a-b and mechanism = "niche difference" for Fig7c-d 
 linear_change_response <- predict_environmental_change_response(nsp = 10,
                                               env.change = linear_change,
                                               trait.distribution = "uniform",
-                                              mechanism = "niche difference",
+                                              mechanism = "competitive dominance",
                                               Nmin = 0.001,
-                                              initial.abundance = 0.01,
-                                              growth.rate =0.2,
+                                              initial.abundance = 0.005,
+                                              growth.rate =0.5,
                                               extinction = T,
                                               plot.species.dynamics = T,
                                               plot.response.diagram = T)
@@ -324,12 +324,11 @@ cyclic_change_response <- predict_environmental_change_response(nsp = 10,
                                                           trait.distribution = "uniform",
                                                           mechanism = "niche difference",
                                                           Nmin = 0.001,
-                                                          initial.abundance = 0.01,
-                                                          growth.rate = "trait",
+                                                          initial.abundance = 0.005,
+                                                          growth.rate = 0.5,
                                                           extinction = T,
                                                           plot.species.dynamics = T,
                                                           plot.response.diagram = T)
-
 
 
 ##### Figure  8 #####
