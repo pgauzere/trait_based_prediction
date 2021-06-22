@@ -64,7 +64,6 @@ simulate_environmental_change <- function(type = "pulse",
   if (type == "cyclic") {
     env.dynamic <-  sin(time/(max(time)*cycle_period)) * cycle_value  + rnorm(length(time),sd=stochasticity_value)
     env.dynamic <- env.dynamic + abs(min(env.dynamic))
-    plot(time, env.dynamic, type = "l" )
   }
   
   ## Non stationary 
