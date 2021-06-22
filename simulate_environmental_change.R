@@ -79,7 +79,7 @@ simulate_environmental_change <- function(type = "pulse",
     require(ggplot2)
     print(
       ggplot(environmental.change, aes(time, env.dynamic)) +
-      geom_line() +
+      geom_line(size = 1, col = "darkgreen") +
       theme_classic()
       )}
   return(environmental.change)

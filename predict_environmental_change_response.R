@@ -183,41 +183,42 @@ predict_environmental_change_response <- function(nsp = 10,
   
   #plot species dynamics, if needed
   if (plot.species.dynamics == T) {
-    require(gridExtra)
+    require(cowplot)
     env.plot <-  
       ggplot(cwm_dynamic) +
-      geom_line(aes(x = time, y = env)) +
+      geom_line(aes(x = time, y = env), col = "brown4", size = 1) +
       scale_color_viridis() +
       theme_classic()
     
     comm.plot <- 
       ggplot(comm_dynamic, aes(y = n, x = time)) +
-      geom_line(aes(col = trait.i, group = i)) +
+      geom_line(aes(col = trait.i, group = i), size = 1) +
       scale_color_viridis() +
       theme_classic()+
       theme(legend.position = "bottom")
     
-
-  print(grid.arrange(env.plot, comm.plot))
+    
+    print(plot_grid(env.plot, comm.plot, ncol = 1, align = "v", rel_heights = c(1,2)))
   }
   
   #plot community dynamics and response diagram, if needed
   if (plot.response.diagram == T) {
-    require(gridExtra)
+    require(cowplot)
     cwm.plot <-  
       ggplot(cwm_dynamic) +
-      geom_line(aes(x = time, y = cwm)) +
+      geom_line(aes(x = time, y = cwm), col = "darkgreen", size = 1) +
       scale_color_viridis_d() +
       theme_classic()
     
     response.diagram <-
       ggplot(cwm_dynamic) +
-      geom_path(aes(x = env, y = cwm, col = time)) +
+      geom_path(aes(x = env, y = cwm, col = time), size = 1) +
       scale_color_viridis() +
       theme_classic()+
       theme(legend.position = "bottom")
     
-    print(grid.arrange(env.plot, cwm.plot, response.diagram))
+    
+    print(plot_grid(env.plot, cwm.plot, response.diagram, ncol = 1, rel_heights = c(1, 1, 3), align = "v"))
   }
 #return both dataframes
 cwm = left_join(comm_dynamic, cwm_dynamic)
