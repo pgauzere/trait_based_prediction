@@ -186,7 +186,7 @@ predict_environmental_change_response <- function(nsp = 10,
     require(cowplot)
     env.plot <-  
       ggplot(cwm_dynamic) +
-      geom_line(aes(x = time, y = env), col = "brown4", size = 1) +
+      geom_line(aes(x = time, y = env), col = "darkorange2", size = 1) +
       scale_color_viridis() +
       theme_classic()
     
@@ -204,6 +204,12 @@ predict_environmental_change_response <- function(nsp = 10,
   #plot community dynamics and response diagram, if needed
   if (plot.response.diagram == T) {
     require(cowplot)
+    env.plot <-  
+      ggplot(cwm_dynamic) +
+      geom_line(aes(x = time, y = env), col = "darkorange2", size = 1) +
+      scale_color_viridis() +
+      theme_classic()
+    
     cwm.plot <-  
       ggplot(cwm_dynamic) +
       geom_line(aes(x = time, y = cwm), col = "darkgreen", size = 1) +
