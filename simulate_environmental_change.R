@@ -64,7 +64,6 @@ simulate_environmental_change <- function(type = "pulse",
   if (type == "cyclic") {
     env.dynamic <-  sin(time/(max(time)*cycle_period)) * cycle_value  + rnorm(length(time),sd=stochasticity_value)
     env.dynamic <- env.dynamic + abs(min(env.dynamic))
-    plot(time, env.dynamic, type = "l" )
   }
   
   ## Non stationary 
@@ -79,7 +78,7 @@ simulate_environmental_change <- function(type = "pulse",
     require(ggplot2)
     print(
       ggplot(environmental.change, aes(time, env.dynamic)) +
-      geom_line() +
+      geom_line(size = 1, col = "darkgreen") +
       theme_classic()
       )}
   return(environmental.change)

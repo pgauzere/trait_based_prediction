@@ -40,22 +40,27 @@ alpha.df %>% filter( i != j) %>% #remove intraspecific coefficient
 
 
 ##### Figure 4a #####
-## we simulate 10replicates along a continuous environmental gradient under the competitive dominance hypothesis
+## we simulate 10replicates along a continuous environmental gradient 
+# under the competitive dominance hypothesis of the niche difference
 alpha.df <- predict_demographic_model_parameters(
   rep = 10,
   nsp = 10,
   env = seq(from = 0, to = 10, by = 0.1),
   trait.distribution = "uniform",
-  mechanism = "competitive dominance")
+  mechanism = "niche difference")
 
-ggplot(alpha.df%>% filter( i != j), #remove intraspecific coefficient for plot
-       aes(x=interaction.coef, fill=env, group = env))+
-  geom_histogram()+
-  theme_classic()+
-  theme(legend.position="bottom")+
+alpha.df %>% filter( i != j & env %in% c(0,2,4,6,8,10)) %>%
+  ggplot(aes(x=interaction.coef, group = -env))+
+  geom_density(aes(fill = env),alpha =0.5)+
+  theme_modern()+
+  theme(legend.position="bottom", axis.title.x = element_blank())+
   scale_fill_viridis()+
+  # scale_fill_gradient2(low = "red", mid="darkgrey", high = "blue")+
+  # facet_wrap(~trait.distribution + mechanism + env, nrow = length(trait.distribution), scales = "free_y") +
+  # geom_vline(xintercept = 0) +
   scale_x_continuous(expand = c(0,0))+
   scale_y_continuous(expand = c(0,0), trans= "sqrt")
+
 
 
 ############### B Scaling up to coexistence outcomes ######################
@@ -297,22 +302,22 @@ simulate_environmental_change(type = "non-stationary", dispersion_value = 0.10, 
 # load the function
 
 source("simulate_environmental_change.R")
-source("predict_environmental_change_response_Ben.R")
+source("predict_environmental_change_response.R")
 # read the forewords of the function to know how to use it
 
 ##### Figure  7 #####
 
 #simulate linear temporal increase in environment 
-linear_change <- simulate_environmental_change(type = "linear", trend_value = 2,plot.env.change = F)
+linear_change <- simulate_environmental_change(type = "linear", trend_value = 3, plot.env.change = T)
 
-
+# choose mechanism = "competitive dominance" for Fig7a-b and mechanism = "niche difference" for Fig7c-d 
 linear_change_response <- predict_environmental_change_response(nsp = 10,
                                               env.change = linear_change,
                                               trait.distribution = "uniform",
-                                              mechanism = "niche difference",
+                                              mechanism = "competitive dominance",
                                               Nmin = 0.001,
-                                              initial.abundance = 0.01,
-                                              growth.rate =0.2,
+                                              initial.abundance = 0.005,
+                                              growth.rate =0.5,
                                               extinction = T,
                                               plot.species.dynamics = T,
                                               plot.response.diagram = T)
@@ -324,12 +329,11 @@ cyclic_change_response <- predict_environmental_change_response(nsp = 10,
                                                           trait.distribution = "uniform",
                                                           mechanism = "niche difference",
                                                           Nmin = 0.001,
-                                                          initial.abundance = 0.01,
-                                                          growth.rate = "trait",
+                                                          initial.abundance = 0.005,
+                                                          growth.rate = 0.5,
                                                           extinction = T,
                                                           plot.species.dynamics = T,
                                                           plot.response.diagram = T)
-
 
 
 ##### Figure  8 #####
