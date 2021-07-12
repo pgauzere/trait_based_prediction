@@ -61,7 +61,7 @@ g_richness = ggplot(data=data_ts_melted %>% filter(variable=="richness")) +
   geom_line(aes(x=t,y=value),size=1) +
   theme_bw() + 
   xlab("Time (t)") + ylab("Species richness") +
-  ggtitle('Species richness response') +
+  ggtitle('Richness response') +
   ylim(0,10) +
   geom_hline(yintercept = 10,color='red',linetype='dashed') +
   scale_x_sqrt() +
