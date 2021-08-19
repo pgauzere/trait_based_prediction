@@ -54,30 +54,42 @@ def competitive_hierarchy(T, E):
                 A[i,j] = -1
     return(A)
 
-def shannon(sb_N, n_sp):
-    sum_N = np.sum(sb_N,axis=1)
-    pi = np.divide(sb_N,np.repeat(sum_N.reshape(len(sum_N),1), n_sp, axis=1))
-    sh_N = -1*np.log(np.prod(numpy.nan_to_num(np.power(pi, pi), nan=1.0),axis=1))
-    return sum_N, sh_N
+# def shannon(sb_N, n_sp):
+#     sum_N = np.sum(sb_N,axis=1)
+#     pi = np.divide(sb_N,np.repeat(sum_N.reshape(len(sum_N),1), n_sp, axis=1))
+#     sh_N = -1*np.log(np.prod(numpy.nan_to_num(np.power(pi, pi), nan=1.0),axis=1))
+#     return sum_N, sh_N
 
 # %% Define Constants
 
-pwd = '/Users/willsharpless/Documents/ipy/glv_mpc/'
+save_path = 'NEED TO BE DEFINED'
 
-# Parameters
-n_rand = 10; #10
+# General
+n_rand = 2; #10
 E = 8; 
-delta_t = 1e-1; n_step = 100; 
-n_horizon = 3; model_type = 'continuous'
-n_sp = 5; 
+delta_t = 1e-1; 
+n_step = 100; 
+n_horizon = 3; 
+model_type = 'continuous'
+n_sp = 3; #10
 target_cwms = [0.2, 0.4, 0.6, 0.8]
 
-# Model Params
+# Model
 r = np.repeat(1, n_sp).reshape(n_sp,1)
 B = np.repeat(0, n_sp).reshape(n_sp,1)
 B[n_sp-1], B[0] = 1, 1 # species w max & min traits are controllable
 
-df_hypotheses_data = [[], []]
+# Scoring
+success_radius = 0.1
+columns = ["Final_Trait_Composition",
+              "Target_Trait_Composition",
+              "Numerical_Convergence",
+              "Initial_State",
+              "Final_State",
+              "Initial_Richness",
+            ]
+alpha = 0.05 #error
+z = 1 - alpha/2
 
 # %% Run MPC Sims
 
@@ -97,13 +109,11 @@ for hi, hypothesis in enumerate([limiting_similarity, competitive_hierarchy]):
     c_run = 0
 
     for rand in range(n_rand):
-    # for target_cwm in [0.2, 0.4, 0.6, 0.8]:
 
         start = time.time()
         print("Beginning Randomization ", rand, " for hypothesis ", hypothesis.__name__, "...")
         np.random.seed(10 + rand) # same background
 
-        # for rand in range(n_rand):
         for target_cwm in target_cwms:
 
             print(" Beginning MPC runs with "+str(n_sp)+" sp and "+str(target_cwm)+" target...")
@@ -260,21 +270,11 @@ for hi, hypothesis in enumerate([limiting_similarity, competitive_hierarchy]):
     sb_n_sub_ic = sb_n_sub_ic[~skip]
    
     # combine and add to hypothesis dataframe
-    df_hypotheses_data[hi] = [sb_t_cwm, sb_target_t_cwm, sb_conv, sb_Ni, sb_Nf, sb_n_sub_ic]
+    data = [sb_t_cwm, sb_target_t_cwm, sb_conv, sb_Ni, sb_Nf, sb_n_sub_ic]
+    np.save(save_path + "trait_MPC_n10_rand" + str(rand) + "_data_" + hypothesis.__name__, data)
 
-# %% Compute success, combine into dataframe and export to csv
+    ## %% Compute success, combine into dataframe and export to csv
 
-success_radius = 0.1
-
-for hi, data in enumerate(df_hypotheses_data):
-
-    columns = ["Final_Trait_Composition",
-              "Target_Trait_Composition",
-              "Numerical_Convergence",
-              "Initial_State",
-              "Final_State",
-              "Initial_Richness",
-            ]
     df = pd.DataFrame()
     for i, col in enumerate(columns):
         if i != 3 and i != 4:
@@ -304,12 +304,11 @@ for hi, data in enumerate(df_hypotheses_data):
     means = df_short.groupby(['Initial_Richness','Target_Trait_Composition']).mean()['Controller_Success'].values
     n_samples = df_short.groupby(['Initial_Richness','Target_Trait_Composition']).size().values
 
-    alpha = 0.05 #error
-    z = 1 - alpha/2
     ci_size = z * np.sqrt(np.divide(np.multiply(means, 1 - means), n_samples))
     df_summary["Confidence_Interval_95"] = ci_size
 
     df_summary.rename(columns = {"Controller_Success":"Mean_Controller_Success"})
     df_summary.drop(columns = ["Randomization"], inplace=True)
     
-    df_summary.to_csv(["limiting_similarity", "competitive_hierarchy"][hi] + "_mpc_statistics.csv")
+    df_summary.to_csv(["limiting_similarity", "competitive_hierarchy"][hi] + "_mpc_stats_10n.csv")
+    print("Finished and scored simulations for hypothesis ", hypothesis.__name__, " ========================== \n")
