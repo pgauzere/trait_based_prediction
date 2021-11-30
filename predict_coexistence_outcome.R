@@ -151,9 +151,8 @@ predict_coexistence_outcome <- function(x,
     "unstable"
   }
   
-  #assess stability based on "negative rightmost eigenvalue of A" and store  
+  #assess stability based on "negative rightmost eigenvalue of diag(xstar)*A" and store  
   #compute eigenvalues of A 
-  eigen(A)$values
   analytic_stability2 <- if (min(Re(eigenJacobianA)) < 0) {
     "stable"
   } else {
