@@ -237,7 +237,7 @@ predict_coexistence_outcome <- function(x,
   ## prune network : interaction coefficient under a given value are deleted from network 
   interSpeInteractions <- edges$weight[edges$i != edges$j]
   # threshold <- abs(mean(interSpeInteractions) + qnorm(network.threshold)*sd(interSpeInteractions)/sqrt(length(interSpeInteractions)))
-  edges <- edges %>% filter(abs(weight) < network.threshold)
+  edges <- edges %>% filter(abs(weight) > network.threshold)
   # edges <- edges %>% filter(abs(weight) < threshold)
   
   ## assemble network
@@ -262,7 +262,7 @@ predict_coexistence_outcome <- function(x,
   transitivity <- transitivity(network, type = "global")  # gives the clustering coefficient of the whole network
   transitivity(network, type="local") # gives the clustering coefficient of each node 
   
-  ## plot netwok
+  ## plot network
   if (plot.network == T) {
     print(
       ggraph(simple_network, layout = "linear") +
@@ -272,14 +272,14 @@ predict_coexistence_outcome <- function(x,
           alpha = ..index..
         )) +
         geom_node_point(size = 4) +
-        scale_edge_width(range = c(0, 4), guide = F) +
+        scale_edge_width(range = c(0, 4), guide = "none") +
         labs(edge_width = "strengh", edge_color = "coefficient") +
         theme_graph() +
-        scale_edge_color_viridis(
+        scale_edge_color_gradient2(mid = "lightgrey",
           "interaction coefficient",
-          option = "A",
+          # option = "A",
           limits = c(-1, 1),
-          direction = -1
+          # direction = -1
         ) +
         scale_edge_alpha('edge direction', guide = 'edge_direction')
     )
