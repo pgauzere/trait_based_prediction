@@ -49,10 +49,10 @@ env_change_response.perturbed <- predict_environmental_change_response(nsp = nsp
                                                                        plot.response.diagram = F)
 
 ecr = env_change_response$comm_dynamic %>% 
-  mutate(label=LETTERS[factor(trait.i,levels=sort(unique(trait.i)))])
+  mutate(label=letters[factor(trait.i,levels=sort(unique(trait.i)))])
 
 ecr.perturbed = env_change_response.perturbed$comm_dynamic %>% 
-  mutate(label=LETTERS[factor(trait.i,levels=sort(unique(trait.i)))])
+  mutate(label=letters[factor(trait.i,levels=sort(unique(trait.i)))])
 
 g1 = ggplot(ecr, aes(y = n, x = time)) +
   geom_line(aes(col = trait.i, group = i),size=1) +
@@ -199,9 +199,9 @@ env_change_all_perturbed = rbind(env_change_response_ptA$comm_dynamic, env_chang
 
 # prep data for plotting
 eca.trait.unperturbed = env_change_all %>% 
-  mutate(label=LETTERS[factor(trait.i,levels=sort(unique(trait.i)))])
+  mutate(label=letters[factor(trait.i,levels=sort(unique(trait.i)))])
 eca.trait.perturbed = env_change_all_perturbed %>% 
-  mutate(label=LETTERS[factor(trait.i,levels=sort(unique(trait.i)))])
+  mutate(label=letters[factor(trait.i,levels=sort(unique(trait.i)))])
 
 g_addition_unperturbed = ggplot(eca.trait.unperturbed, aes(y = n, x = time)) +
   geom_line(aes(col = trait.i, group = i),size=1) +
