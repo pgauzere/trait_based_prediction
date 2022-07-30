@@ -27,6 +27,6 @@ g = ggplot(grid %>%
   scale_linetype_discrete(name=expression(paste("Number of traits (", italic(k), ")"))) +
   theme(legend.position = 'right')
 
-ggsave(g, file='parameter_reduction.pdf',width=8,height=5)
+ggsave(g, file='parameter_reduction.pdf',width=7,height=5)
 
        
